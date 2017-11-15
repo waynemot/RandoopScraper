@@ -2,9 +2,15 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Stack;
+
+import org.apache.commons.collections4.multimap.AbstractListValuedMap;
+import org.apache.commons.collections4.multimap.AbstractMultiValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
@@ -32,7 +38,17 @@ public class PlayJavaparser {
 	static final double[] doublevals =  {-1, 0, 1, 10, 100};
 	static final char[] charvals = { '#', ' ', '4', 'a'};
 	static final java.lang.String[] stringvals = { "", "hi!"};
-	Stack<String> filelist;
+	/**
+	 * Container used to store file names of java class files found
+	 * during scan
+	 */
+	Stack<String> filelist;              // input files list to scan
+	/**
+	 * Container mapping input file names to class containing a stack
+	 * of the literals found, literals are translated into strings
+	 * so each will have a type associated with it.
+	 */
+	Map<String, ClassLiterals> literals; // maps files to literals found in each
 	
     public PlayJavaparser() {
 		filelist = new Stack<String>();
@@ -72,6 +88,42 @@ public class PlayJavaparser {
     
     public Stack<String> getFiles() {
     	return this.filelist;
+    }
+    
+    /**
+     * writes a structured literals file in the format required by Randoop
+     * for inclusion using the --literal-files= command line flag
+     * Basic format is:
+     * START CLASSLITERALS
+     * CLASSNAME
+     * full-qualified-path-name
+     */
+    public void buildOutFile() {
+    	    if(!this.filelist.isEmpty()) {
+    	    	    PrintStream outstream = null;
+    	    	    try {
+				outstream = new PrintStream("new_literals.txt");
+			} catch (FileNotFoundException e) {
+				System.err.println("Failed to create new_literals.txt output file");
+				e.printStackTrace();
+			}
+    	    	    if(outstream != null) {
+    	    	    	    outstream.println("START CLASSLITERALS");
+    	    	    	    outstream.flush();
+    	    	    	    Iterator<String> iter = filelist.iterator();
+    	    	    	    while(iter.hasNext()) {
+    	    	    	    	    String clname = iter.next();
+    	    	    	    	    if(literals.containsKey(clname)) {
+    	    	    	    	        outstream.println("CLASSNAME");
+    	    	    	    	        outstream.println(literals.get(clname).getQName());
+    	    	    	    	        Stack<Literal> lits = literals.get(clname).getLiterals();
+    	    	    	    	        Iterator<Literal> lit_iter = lits.iterator();
+    	    	    	    	        
+    	    	    	    	    }
+    	    	    	    }
+    	    	    }
+    	    	    return;
+    	    }
     }
 
 	public static void main(String[] args) {
@@ -198,6 +250,77 @@ public class PlayJavaparser {
         	System.out.println("Else: "+n.getElseStmt().toString());
         }
     }
-	
+	/**
+	 * container class for storing the literals found for each class
+	 * @author wmotycka
+	 *
+	 */
+	private class ClassLiterals {
+		String filename;
+		String qualifiedname;
+		Stack<Literal> literalvals;
+		ArrayListValuedHashMap literals;
+		public ClassLiterals() {
+			literals = new ArrayListValuedHashMap<String, Literal>();
+			literalvals = new Stack<Literal>();
+			filename = null;
+			qualifiedname = null;
+		}
+		public ClassLiterals(String name) {
+			this.filename = name;
+		}
+		public void setQName(String qname) {
+			this.qualifiedname = qname;
+		}
+		public String getQName() {
+			return this.qualifiedname;
+		}
+		public void addLiteral(Literal lit) {
+			this.literalvals.push(lit);
+			this.literals.put(lit.lit_type, lit.lit_value);
+		}
+		public Stack<Literal> getLiterals() {
+			return this.literalvals;
+		}
+		public List<String> getLiterals(String key) {
+			return this.literals.get(key);
+		}
+	}
+	/**
+	 * container class to store each literal, types are converted to
+	 * strings as well as values prior to being placed into the container.
+	 * @author wmotycka
+	 *
+	 */
+	private class Literal {
+		String lit_type;
+		String lit_value;
+		
+		public Literal() {
+			lit_type = null;
+			lit_value = null;
+		}
+		
+		public Literal(String type, String value) {
+			this.lit_type = type;
+			this.lit_value = value;
+		}
+		
+		public void setType(String type) {
+			this.lit_type = type;
+		}
+		
+		public void setValue(String value) {
+			this.lit_value = value;
+		}
+		
+		public String getType() {
+			return this.lit_type;
+		}
+		
+		public String getValue() {
+			return this.lit_value;
+		}
+	}
 	
 }
