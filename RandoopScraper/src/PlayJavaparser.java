@@ -46,7 +46,7 @@ public class PlayJavaparser {
     				File[] flist = fp.listFiles();
     				for(int i = 0; i < flist.length; i++) {
     					if(flist[i].isFile()) {
-    						if(flist[i].getName().matches(".java$")) {
+    						if(flist[i].getName().matches(".*.java$")) {
     							try {
 									filelist.push(flist[i].getCanonicalPath());
 								} catch (IOException e) {
