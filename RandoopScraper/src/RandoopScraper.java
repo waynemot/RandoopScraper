@@ -2,15 +2,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Stack;
-
-import org.apache.commons.collections4.multimap.AbstractListValuedMap;
-import org.apache.commons.collections4.multimap.AbstractMultiValuedMap;
-import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
@@ -21,6 +15,7 @@ import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.stmt.*;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 
+import java.util.*;
 
 public class RandoopScraper {
     /**
@@ -38,20 +33,13 @@ public class RandoopScraper {
 	static final double[] doublevals =  {-1, 0, 1, 10, 100};
 	static final char[] charvals = { '#', ' ', '4', 'a'};
 	static final java.lang.String[] stringvals = { "", "hi!"};
-	/**
-	 * Container used to store file names of java class files found
-	 * during scan
-	 */
-	Stack<String> filelist;              // input files list to scan
-	/**
-	 * Container mapping input file names to class containing a stack
-	 * of the literals found, literals are translated into strings
-	 * so each will have a type associated with it.
-	 */
-	Map<String, ClassLiterals> literals; // maps files to literals found in each
+	Stack<String> filelist;
+	//ArrayListValuedHashMap literalsmap;
 	
+	HashMap<String, LiteralMap> literalslist; // maps class to data-types/values map
     public RandoopScraper() {
 		filelist = new Stack<String>();
+		literalslist = new HashMap<>();
 	}
     
     public void parseFilesArgs(String fpath) {
@@ -60,26 +48,39 @@ public class RandoopScraper {
     		if(fp.exists()) {
     			if(fp.isDirectory()) {
     				File[] flist = fp.listFiles();
-    				for(int i = 0; i < flist.length; i++) {
-    					if(flist[i].isFile()) {
-    						if(flist[i].getName().matches(".*.java$")) {
-    							try {
-									filelist.push(flist[i].getCanonicalPath());
+    				if(flist != null) {
+	    				for(int i = 0; i < flist.length; i++) {
+	    					if(flist[i].isFile()) {
+	    						if(flist[i].getName().matches(".*.java$")) {
+	    							try {
+										filelist.push(flist[i].getCanonicalPath());
+									} catch (IOException e) {
+										System.err.println("Error: failed to get canonical path for file in path");
+										e.printStackTrace();
+										System.exit(1);
+									}
+	    						}
+	    					}
+	    					else if(flist[i].isDirectory()) {
+	    						try {
+									parseFilesArgs(flist[i].getCanonicalPath());
 								} catch (IOException e) {
-									System.err.println("Error: failed to get canonical path for file in path");
+									System.err.println("Error: failed to get canonical path for file path");
 									e.printStackTrace();
-									System.exit(1);
 								}
-    						}
-    					}
-    					else if(flist[i].isDirectory()) {
-    						try {
-								parseFilesArgs(flist[i].getCanonicalPath());
-							} catch (IOException e) {
-								System.err.println("Error: failed to get canonical path for file path");
-								e.printStackTrace();
-							}
-    					}
+	    					}
+	    				}
+	    			}
+    			}
+    			else {
+    				if(fp.getName().matches(".*.java$")) {
+    				    try {
+							filelist.push(fp.getCanonicalPath());
+						} catch (IOException e) {
+							System.err.println("Error: failed to get canonical path for specified file");
+							e.printStackTrace();
+							System.exit(1);
+						}
     				}
     			}
     		}
@@ -91,39 +92,44 @@ public class RandoopScraper {
     }
     
     /**
-     * writes a structured literals file in the format required by Randoop
-     * for inclusion using the --literal-files= command line flag
-     * Basic format is:
-     * START CLASSLITERALS
-     * CLASSNAME
-     * full-qualified-path-name
+     * visit the file specified by the path parameter and collect the literal
+     * values found there.  When collecting them it is necessary to identify the
+     * type (int/double/float/String) of each found and put them into an ArrayList
+     * 
+     * @param path
+     * @return
      */
-    public void buildOutFile() {
-    	    if(!this.filelist.isEmpty()) {
-    	    	    PrintStream outstream = null;
-    	    	    try {
-				outstream = new PrintStream("new_literals.txt");
-			} catch (FileNotFoundException e) {
-				System.err.println("Failed to create new_literals.txt output file");
-				e.printStackTrace();
-			}
-    	    	    if(outstream != null) {
-    	    	    	    outstream.println("START CLASSLITERALS");
-    	    	    	    outstream.flush();
-    	    	    	    Iterator<String> iter = filelist.iterator();
-    	    	    	    while(iter.hasNext()) {
-    	    	    	    	    String clname = iter.next();
-    	    	    	    	    if(literals.containsKey(clname)) {
-    	    	    	    	        outstream.println("CLASSNAME");
-    	    	    	    	        outstream.println(literals.get(clname).getQName());
-    	    	    	    	        Stack<Literal> lits = literals.get(clname).getLiterals();
-    	    	    	    	        Iterator<Literal> lit_iter = lits.iterator();
-    	    	    	    	        
-    	    	    	    	    }
-    	    	    	    }
-    	    	    }
-    	    	    return;
-    	    }
+    public boolean visitFile(String path) {
+    	boolean ret = false;
+    	FileInputStream in = null;
+		
+		try {
+			in = new FileInputStream(path);
+		} catch (FileNotFoundException e) {
+			System.out.println("file open failed on java source-file "+e.getMessage());
+			e.printStackTrace();
+		}
+
+        CompilationUnit cu = null;
+        // parse the file
+		if(in != null) {
+            cu = JavaParser.parse(in);
+		}
+
+        // prints the resulting compilation unit to default system output
+		if(cu != null) {
+            //System.out.println(cu.toString());
+			//int cntr = 1;
+			List<Node> children = cu.getChildNodes();
+			Iterator<Node> it = children.iterator();
+			//while (it.hasNext()) {
+			//	Node node = it.next();
+			//	System.out.println("node_"+cntr+": "+node.toString());
+			//	cntr++;
+			//}
+		    cu.accept(new MethodVisitor(), null);
+		}
+    	return ret;
     }
 
 	public static void main(String[] args) {
@@ -136,8 +142,8 @@ public class RandoopScraper {
 		    	Iterator<String> file_iter = filestack.iterator();
 		    	while(file_iter.hasNext()) {
 		    		fname = file_iter.next();
-					//fname = args[0];
-					FileInputStream in = null;
+		    		pj.visitFile(fname);
+					/*FileInputStream in = null;
 					
 					try {
 						in = new FileInputStream(fname);
@@ -155,7 +161,7 @@ public class RandoopScraper {
 			        // prints the resulting compilation unit to default system output
 					if(cu != null) {
 			            //System.out.println(cu.toString());
-						int cntr = 1;
+						//int cntr = 1;
 						List<Node> children = cu.getChildNodes();
 						Iterator<Node> it = children.iterator();
 						//while (it.hasNext()) {
@@ -164,7 +170,7 @@ public class RandoopScraper {
 						//	cntr++;
 						//}
 					    cu.accept(new MethodVisitor(), null);
-					}
+					}*/
 		        }
 			}
 			else {
@@ -250,77 +256,14 @@ public class RandoopScraper {
         	System.out.println("Else: "+n.getElseStmt().toString());
         }
     }
-	/**
-	 * container class for storing the literals found for each class
-	 * @author wmotycka
-	 *
-	 */
-	private class ClassLiterals {
-		String filename;
-		String qualifiedname;
-		Stack<Literal> literalvals;
-		ArrayListValuedHashMap literals;
-		public ClassLiterals() {
-			literals = new ArrayListValuedHashMap<String, Literal>();
-			literalvals = new Stack<Literal>();
-			filename = null;
-			qualifiedname = null;
-		}
-		public ClassLiterals(String name) {
-			this.filename = name;
-		}
-		public void setQName(String qname) {
-			this.qualifiedname = qname;
-		}
-		public String getQName() {
-			return this.qualifiedname;
-		}
-		public void addLiteral(Literal lit) {
-			this.literalvals.push(lit);
-			this.literals.put(lit.lit_type, lit.lit_value);
-		}
-		public Stack<Literal> getLiterals() {
-			return this.literalvals;
-		}
-		public List<String> getLiterals(String key) {
-			return this.literals.get(key);
-		}
-	}
-	/**
-	 * container class to store each literal, types are converted to
-	 * strings as well as values prior to being placed into the container.
-	 * @author wmotycka
-	 *
-	 */
-	private class Literal {
-		String lit_type;
-		String lit_value;
-		
-		public Literal() {
-			lit_type = null;
-			lit_value = null;
-		}
-		
-		public Literal(String type, String value) {
-			this.lit_type = type;
-			this.lit_value = value;
-		}
-		
-		public void setType(String type) {
-			this.lit_type = type;
-		}
-		
-		public void setValue(String value) {
-			this.lit_value = value;
-		}
-		
-		public String getType() {
-			return this.lit_type;
-		}
-		
-		public String getValue() {
-			return this.lit_value;
+	
+	@SuppressWarnings("serial")
+	protected class LiteralMap extends HashMap<String, ArrayList<String>> {
+		HashMap<String, ArrayList<String>> type_vals;
+		public LiteralMap() {
+			type_vals = new HashMap<String, ArrayList<String>>();
 		}
 	}
 	
 }
+
