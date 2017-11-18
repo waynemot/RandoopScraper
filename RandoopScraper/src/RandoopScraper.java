@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Stack;
+
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
@@ -95,7 +96,7 @@ public class RandoopScraper {
     public void addLiteral(String type, String value) {
     	if(literalslist.isEmpty() || !literalslist.containsKey(this.currentClass)) {
     		// new literalslist or literalslist needs this class added
-    		ArrayList al = new ArrayList<String>();
+    		ArrayList<String> al = new ArrayList<String>();
     		al.add(value);
     		LiteralMap lm = new LiteralMap();
     		lm.put(type, al);
@@ -109,7 +110,7 @@ public class RandoopScraper {
 			}
 			else { // Dont have this type in HashMap for this class
 				// create a new array list for this data type & add value to it
-				ArrayList al = new ArrayList<String>();
+				ArrayList<String> al = new ArrayList<String>();
 				al.add(value);
 				literalslist.get(currentClass).put(type, al);
 			}
@@ -151,7 +152,7 @@ public class RandoopScraper {
 			//	System.out.println("node_"+cntr+": "+node.toString());
 			//	cntr++;
 			//}
-		    cu.accept(new MethodVisitor(), null);
+		    cu.accept(new MethodVisitor(this), null);
 		}
     	return ret;
     }
@@ -206,6 +207,25 @@ public class RandoopScraper {
 	}
 	
 	private static class MethodVisitor extends VoidVisitorAdapter<Void> {
+		RandoopScraper pj;
+		public MethodVisitor(RandoopScraper p) {
+			this.pj = p;
+		}
+		@Override
+		public void visit(ClassOrInterfaceDeclaration n, Void arg) {
+			if(n.isInnerClass()) {
+				System.out.println("InnerClassDec: "+n.toString());
+			}
+			else {
+				pj.currentClass = n.getNameAsString();
+				//String nas = n.getNameAsString();
+				//SimpleName sname = n.getName();
+				//String snas = sname.asString();
+				System.out.println("ContainingClassDec: "+n.getNameAsString());
+				super.visit(n, arg);
+			}
+		}
+		
         //@Override
         //public void visit(MethodDeclaration n, Void arg) {
             /* here you can access the attributes of the method.
@@ -214,6 +234,7 @@ public class RandoopScraper {
         //    System.out.println(n.getName());
         //    super.visit(n, arg);
         //}
+		
         @Override
         public void visit(EnumDeclaration n, Void arg) {
         	System.out.println(n.getNameAsString());
