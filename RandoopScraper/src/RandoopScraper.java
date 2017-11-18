@@ -50,8 +50,22 @@ public class RandoopScraper {
 
     public RandoopScraper() {
 		filelist = new Stack<String>();
+		initVarNameLists();
+		currentClass = "";
+		currentPkg = "";
 		literalslist = new HashMap<String, LiteralMap>();
 	}
+   
+    public void initVarNameLists() {
+    	intNames = new ArrayList<>();
+		byteNames = new ArrayList<>();
+		shortNames = new ArrayList<>();
+		longNames = new ArrayList<>();
+		floatNames = new ArrayList<>();
+		doubleNames = new ArrayList<>();
+		charNames = new ArrayList<>();
+		stringNames = new ArrayList<>();
+    }
     
     public void parseFilesArgs(String fpath) {
     	if(fpath != null) {
