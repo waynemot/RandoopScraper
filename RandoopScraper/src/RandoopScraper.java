@@ -34,14 +34,23 @@ public class RandoopScraper {
 	static final double[] doublevals =  {-1, 0, 1, 10, 100};
 	static final char[] charvals = { '#', ' ', '4', 'a'};
 	static final java.lang.String[] stringvals = { "", "hi!"};
-	Stack<String> filelist;
+	protected ArrayList<String> intNames;
+	protected ArrayList<String> byteNames;
+	protected ArrayList<String> shortNames;
+	protected ArrayList<String> longNames;
+	protected ArrayList<String> floatNames;
+	protected ArrayList<String> doubleNames;
+	protected ArrayList<String> charNames;
+	protected ArrayList<String> stringNames;
+	protected Stack<String> filelist;
 	volatile String currentClass;
-	//ArrayListValuedHashMap literalsmap;
-	
+	volatile String currentPkg;
+
 	HashMap<String, LiteralMap> literalslist; // maps class to data-types/values map
+
     public RandoopScraper() {
 		filelist = new Stack<String>();
-		literalslist = new HashMap<>();
+		literalslist = new HashMap<String, LiteralMap>();
 	}
     
     public void parseFilesArgs(String fpath) {
@@ -94,6 +103,9 @@ public class RandoopScraper {
     }
     
     public void addLiteral(String type, String value) {
+    	if(literalslist == null) {
+    		literalslist = new HashMap<String, LiteralMap>();
+    	}
     	if(literalslist.isEmpty() || !literalslist.containsKey(this.currentClass)) {
     		// new literalslist or literalslist needs this class added
     		ArrayList<String> al = new ArrayList<String>();
@@ -207,9 +219,9 @@ public class RandoopScraper {
 	}
 	
 	private static class MethodVisitor extends VoidVisitorAdapter<Void> {
-		RandoopScraper pj;
+		RandoopScraper rs;
 		public MethodVisitor(RandoopScraper p) {
-			this.pj = p;
+			this.rs = p;
 		}
 		@Override
 		public void visit(ClassOrInterfaceDeclaration n, Void arg) {
@@ -217,7 +229,7 @@ public class RandoopScraper {
 				System.out.println("InnerClassDec: "+n.toString());
 			}
 			else {
-				pj.currentClass = n.getNameAsString();
+				rs.currentClass = n.getNameAsString();
 				//String nas = n.getNameAsString();
 				//SimpleName sname = n.getName();
 				//String snas = sname.asString();
@@ -286,7 +298,7 @@ public class RandoopScraper {
         public void visit(ForStmt n, Void arg) {
         	NodeList<Expression> nl = n.getInitialization();
         	int ncnt = 1;
-        	Iterator iter = nl.iterator();
+        	Iterator<Expression> iter = nl.iterator();
         	System.out.print("ForStmtInit: ");
         	while(iter.hasNext()) {
         	    System.out.println("init op "+ncnt+": "+iter.next().toString());
