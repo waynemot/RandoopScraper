@@ -1,11 +1,8 @@
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Stack;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
@@ -111,30 +108,40 @@ public class RandoopScraper {
     		}
     	}
     }
-    
+    /**
+     * get the list of files scanned
+     * @return
+     */
     public Stack<String> getFiles() {
     	return this.filelist;
+    }
+    /**
+     * gets the hashmap object containing the literals found for each class
+     * @return
+     */
+    public HashMap<String, LiteralMap> getLiteralsList() {
+    	return this.literalslist;
     }
     
     public void addLiteral(String type, String value) {
     	if(literalslist == null) {
     		literalslist = new HashMap<String, LiteralMap>();
     	}
-    	if(literalslist.isEmpty() || !literalslist.containsKey(this.currentClass)) {
-    		// new literalslist or literalslist needs this class added
+    	if(!literalslist.containsKey(this.currentClass)) {
+    		// literalslist needs this class added
     		ArrayList<String> al = new ArrayList<String>();
     		al.add(value);
     		LiteralMap lm = new LiteralMap();
     		lm.put(type, al);
     		literalslist.put(this.currentClass, lm);
     	}
-    	else { // literalslist !empty && contains current class key
+    	else { // literalslist contains current class key
     		//check if this type exists yet for this class in literalsmap
 			if(literalslist.get(this.currentClass).containsKey(type)) {
 				 // we have this data type for this class in HM, add new value
 				literalslist.get(this.currentClass).get(type).add(value);
 			}
-			else { // Dont have this type in HashMap for this class
+			else { // Don't have this type in HashMap for this class
 				// create a new array list for this data type & add value to it
 				ArrayList<String> al = new ArrayList<String>();
 				al.add(value);
@@ -171,8 +178,8 @@ public class RandoopScraper {
 		if(cu != null) {
             //System.out.println(cu.toString());
 			//int cntr = 1;
-			List<Node> children = cu.getChildNodes();
-			Iterator<Node> it = children.iterator();
+			//List<Node> children = cu.getChildNodes();
+			//Iterator<Node> it = children.iterator();
 			//while (it.hasNext()) {
 			//	Node node = it.next();
 			//	System.out.println("node_"+cntr+": "+node.toString());
@@ -185,44 +192,18 @@ public class RandoopScraper {
 
 	public static void main(String[] args) {
 		String fname = null;
-		RandoopScraper pj = new RandoopScraper();
+		RandoopScraper rs = new RandoopScraper();
 		if(args.length > 0) {
-		    pj.parseFilesArgs(args[0]);
-		    Stack<String> filestack = pj.getFiles();
+		    rs.parseFilesArgs(args[0]);
+		    Stack<String> filestack = rs.getFiles();
 		    if(!filestack.isEmpty()) {
 		    	Iterator<String> file_iter = filestack.iterator();
 		    	while(file_iter.hasNext()) {
 		    		fname = file_iter.next();
-		    		pj.visitFile(fname);
-					/*FileInputStream in = null;
-					
-					try {
-						in = new FileInputStream(fname);
-					} catch (FileNotFoundException e) {
-						System.out.println("file open failed on java source-file "+e.getMessage());
-						e.printStackTrace();
-					}
-		
-			        CompilationUnit cu = null;
-			        // parse the file
-					if(in != null) {
-			            cu = JavaParser.parse(in);
-					}
-		
-			        // prints the resulting compilation unit to default system output
-					if(cu != null) {
-			            //System.out.println(cu.toString());
-						//int cntr = 1;
-						List<Node> children = cu.getChildNodes();
-						Iterator<Node> it = children.iterator();
-						//while (it.hasNext()) {
-						//	Node node = it.next();
-						//	System.out.println("node_"+cntr+": "+node.toString());
-						//	cntr++;
-						//}
-					    cu.accept(new MethodVisitor(), null);
-					}*/
+		    		rs.visitFile(fname);
 		        }
+		    	// Done processing files, create Randoop literals file
+		    	rs.createLiteralsFile();
 			}
 			else {
 				System.out.println("Usage: PlayJavaparser java-source-file-or-dir");
@@ -232,6 +213,48 @@ public class RandoopScraper {
 		}
 	}
 	
+	/**
+	 * create the Randoop literals file from the contents of the
+	 * literalslist object.
+	 */
+	private void createLiteralsFile() {
+		if(!literalslist.isEmpty()) {
+			File out = new File("literals_list.txt");
+			try {
+				if(!out.exists()) {
+					out.createNewFile();
+				}
+				FileOutputStream ofs = new FileOutputStream(out);
+			} catch (FileNotFoundException e) {
+				System.err.println("open of file output stream failed "+e.getMessage());
+				e.printStackTrace();
+			} catch(IOException ioe) {
+				System.err.println("Create of output file failed "+ioe.getMessage());
+				ioe.printStackTrace();
+			}
+			// TODO: CREATE PREAMBLE OF LITERALS FILE HERE
+			Set<String> class_set = literalslist.keySet();
+			Iterator<String> class_iter = class_set.iterator();
+			while(class_iter.hasNext()) {
+				String currClass = class_iter.next();
+				LiteralMap lm = literalslist.get(currClass);
+				if(lm != null) {
+					// Have a set of literals for this currClass
+					// TODO: FORMAT AN OUTPUT STREAM WRITE TO ANNOUNCE THIS CLASS
+					Set<String> type_set = lm.keySet();
+					Iterator<String> type_iter = type_set.iterator();
+					while(type_iter.hasNext()) {
+						String currType = type_iter.next();
+						ArrayList<String> type_values = lm.get(currType);
+						for(String tvalue : type_values) {
+							// TODO: FORMAT AN OUTPUT STRING FOR EACH VALUE
+						}
+					}
+				}
+			}
+		}
+	}
+
 	private static class MethodVisitor extends VoidVisitorAdapter<Void> {
 		RandoopScraper rs;
 		public MethodVisitor(RandoopScraper p) {
