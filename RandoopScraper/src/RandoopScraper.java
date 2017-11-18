@@ -8,6 +8,7 @@ import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
+import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.*;
 import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.stmt.*;
@@ -171,6 +172,12 @@ public class RandoopScraper {
         CompilationUnit cu = null;
         // parse the file
 		if(in != null) {
+			Optional<PackageDeclaration> pd = cu.getPackageDeclaration();
+			if(pd.isPresent()) {
+				this.currentPkg = pd.get().toString();
+			} else {
+				this.currentPkg = "";
+			}
             cu = JavaParser.parse(in);
 		}
 
