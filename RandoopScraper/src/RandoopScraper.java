@@ -2,10 +2,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Stack;
-
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
@@ -34,6 +34,7 @@ public class RandoopScraper {
 	static final char[] charvals = { '#', ' ', '4', 'a'};
 	static final java.lang.String[] stringvals = { "", "hi!"};
 	Stack<String> filelist;
+	volatile String currentClass;
 	//ArrayListValuedHashMap literalsmap;
 	
 	HashMap<String, LiteralMap> literalslist; // maps class to data-types/values map
@@ -91,6 +92,29 @@ public class RandoopScraper {
     	return this.filelist;
     }
     
+    public void addLiteral(String type, String value) {
+    	if(literalslist.isEmpty() || !literalslist.containsKey(this.currentClass)) {
+    		// new literalslist or literalslist needs this class added
+    		ArrayList al = new ArrayList<String>();
+    		al.add(value);
+    		LiteralMap lm = new LiteralMap();
+    		lm.put(type, al);
+    		literalslist.put(this.currentClass, lm);
+    	}
+    	else { // literalslist !empty && contains current class key
+    		//check if this type exists yet for this class in literalsmap
+			if(literalslist.get(this.currentClass).containsKey(type)) {
+				 // we have this data type for this class in HM, add new value
+				literalslist.get(this.currentClass).get(type).add(value);
+			}
+			else { // Dont have this type in HashMap for this class
+				// create a new array list for this data type & add value to it
+				ArrayList al = new ArrayList<String>();
+				al.add(value);
+				literalslist.get(currentClass).put(type, al);
+			}
+    	}
+    }
     /**
      * visit the file specified by the path parameter and collect the literal
      * values found there.  When collecting them it is necessary to identify the
