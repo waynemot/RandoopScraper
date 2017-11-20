@@ -512,25 +512,27 @@ public class RandoopScraper {
         	}
         	public void findType() {
         		if(value != null) {
-        			if(value.contains("\\s"))
+        			if(value.contains("^\"\\s\"$"))
         				this.type = "String";
-        			else if(value.matches("\"\\w.+\""))
+        			else if(value.matches("^\"\\w.+\"$"))
         				this.type = "String";
-        			else if(value.matches("\".+f\""))
+        			else if(value.matches("^.+f$"))
     					this.type = "float";
         			else if(value.length() > 9 && value.charAt(0) != ('-' | '+'))
     					this.type = "double";
-    				else if(value.matches("\"\\d*\\.E\\d+\"")) 
+    				else if(value.matches("^\\d*\\.\\d+E\\d+$")) 
     					this.type = "double";
-        			else if(value.matches("\\d*\\.\\d+$"))
+    				else if(value.matches("^\\d+\\.\\d*E\\d+$"))
+    					this.type = "double";
+        			else if(value.matches("^\\d*\\.\\d+$"))
         				this.type = "double";
-        			else if(value.matches("\\d*\\.\\df$"))
+        			else if(value.matches("^\\d*\\.\\df$"))
         				this.type = "float";
-        			else if(value.matches("\\d+\""))
+        			else if(value.matches("^\\d+$"))
         				this.type = "int";
-        			else if(value.matches("0x\\d\""))
+        			else if(value.matches("^0x\\d+$"))
         				this.type = "byte";
-        			else if(value.matches("\'.+\'"))
+        			else if(value.matches("^\'.\'$") && value.length() == 3)
         				this.type = "char";
         		}
         	}
