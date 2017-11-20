@@ -172,17 +172,17 @@ public class RandoopScraper {
         CompilationUnit cu = null;
         // parse the file
 		if(in != null) {
+			cu = JavaParser.parse(in);
+		}
+
+        // prints the resulting compilation unit to default system output
+		if(cu != null) {
 			Optional<PackageDeclaration> pd = cu.getPackageDeclaration();
 			if(pd.isPresent()) {
 				this.currentPkg = pd.get().toString();
 			} else {
 				this.currentPkg = "";
 			}
-            cu = JavaParser.parse(in);
-		}
-
-        // prints the resulting compilation unit to default system output
-		if(cu != null) {
             //System.out.println(cu.toString());
 			//int cntr = 1;
 			//List<Node> children = cu.getChildNodes();
@@ -303,30 +303,113 @@ public class RandoopScraper {
         	if(((FieldDeclaration)n).getElementType().isPrimitiveType()) {
         		if(type.equals("int")) {
         			System.out.print("INT ");
+        			rs.intNames.add(n.getVariable(0).getNameAsString());
+        			if(n.getVariable(0).getInitializer().isPresent()) {
+        				System.out.println("initializer to int: "+
+        				    n.getVariable(0).getInitializer().get().toString());
+                        // Add this literal value to the literals hashmap
+        				rs.addLiteral(type, n.getVariable(0).getInitializer().get().toString());
+        			}
         		}
         		else if(type.equals("short")) {
         			System.out.print("SHORT ");
+        			rs.shortNames.add(n.getVariable(0).getNameAsString());
+        			if(n.getVariable(0).getInitializer().isPresent()) {
+        				System.out.println("initializer to short: "+
+        				    n.getVariable(0).getInitializer().get().toString());
+                        // Add this literal value to the literals hashmap
+        				rs.addLiteral(type, n.getVariable(0).getInitializer().get().toString());
+        			}
         		}
                 else if(type.equals("long")) {
         			System.out.print("LONG ");
+        			rs.shortNames.add(n.getVariable(0).getNameAsString());
+        			if(n.getVariable(0).getInitializer().isPresent()) {
+        				System.out.println("initializer to long: "+
+        				    n.getVariable(0).getInitializer().get().toString());
+                        // Add this literal value to the literals hashmap
+        				rs.addLiteral(type, n.getVariable(0).getInitializer().get().toString());
+        			}
         		}
         		else if(type.equals("double")) {
         			System.out.print("DOUBLE ");
+        			rs.shortNames.add(n.getVariable(0).getNameAsString());
+        			if(n.getVariable(0).getInitializer().isPresent()) {
+        				System.out.println("initializer to double: "+
+        				    n.getVariable(0).getInitializer().get().toString());
+                        // Add this literal value to the literals hashmap
+        				rs.addLiteral(type, n.getVariable(0).getInitializer().get().toString());
+        			}
         		}
         		else if(type.equals("float")) {
         			System.out.print("FLOAT ");
+        			rs.shortNames.add(n.getVariable(0).getNameAsString());
+        			if(n.getVariable(0).getInitializer().isPresent()) {
+        				System.out.println("initializer to float: "+
+        				    n.getVariable(0).getInitializer().get().toString());
+                        // Add this literal value to the literals hashmap
+        				rs.addLiteral(type, n.getVariable(0).getInitializer().get().toString());
+        			}
         		}
         		else if(type.equals("byte")) {
         			System.out.print("BYTE ");
+        			rs.shortNames.add(n.getVariable(0).getNameAsString());
+        			if(n.getVariable(0).getInitializer().isPresent()) {
+        				System.out.println("initializer to byte: "+
+        				    n.getVariable(0).getInitializer().get().toString());
+                        // Add this literal value to the literals hashmap
+        				String bvalue;
+        				if(n.getVariable(0).getInitializer().get().toString().matches("\'.*\'")) {
+        					String value = n.getVariable(0).getInitializer().get().toString();
+        					bvalue = value.substring(1, value.length()-1);
+        				} else {
+        					bvalue = n.getVariable(0).getInitializer().get().toString();
+        				}
+        				rs.addLiteral(type, bvalue);
+        			}
         		}
         		else if(type.equals("char")) {
         			System.out.print("CHAR ");
+        			rs.shortNames.add(n.getVariable(0).getNameAsString());
+        			if(n.getVariable(0).getInitializer().isPresent()) {
+        				System.out.println("initializer to char: "+
+        				    n.getVariable(0).getInitializer().get().toString());
+        				if(n.getVariable(0).getInitializer().get().toString().matches("\'.*\'")) {
+        					String value = n.getVariable(0).getInitializer().get().toString();
+        					String bvalue = value.substring(1, value.length()-1);
+        				    rs.addLiteral(type, bvalue);
+        				}
+                        // Add this literal value to the literals hashmap
+        				//rs.addLiteral(type, n.getVariable(0).getInitializer().get().toString());
+        			}
         		}
-        		else if(type.equals("String")) {
+        	}
+        	else {
+        		if(type.equals("String")) {
         			System.out.print("STRING ");
+        			rs.stringNames.add(n.getVariable(0).getNameAsString());
+        			if(n.getVariable(0).getInitializer().isPresent()) {
+        				System.out.println("initializer to String: "+
+        				    n.getVariable(0).getInitializer().get().toString());
+                        // Add this literal value to the literals hashmap
+        				rs.addLiteral(type, n.getVariable(0).getInitializer().get().toString());
+        			}
         		}
         		else if(type.equals("Object")) {
         			System.out.print("OBJECT ");
+        			if(n.getVariable(0).getInitializer().isPresent()) {
+        				System.out.println("initializer to Object: "+
+        				    n.getVariable(0).getInitializer().get().toString());
+        				// Object is really a string value
+        				if(n.getVariable(0).getNameAsString().matches("\".*\"")) {
+         			        rs.stringNames.add(n.getVariable(0).getNameAsString());
+        				}
+                       // Add this literal value to the literals hashmap
+        				rs.addLiteral(type, n.getVariable(0).getInitializer().get().toString());
+        			}
+        		}
+        		else {
+        			System.out.println("Non-Primative "+type);
         		}
         	}
         	System.out.println("Field Declaration: "+type+" "+n.getVariables().toString());
