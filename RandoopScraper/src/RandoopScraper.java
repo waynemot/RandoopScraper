@@ -323,7 +323,7 @@ public class RandoopScraper {
         		}
                 else if(type.equals("long")) {
         			System.out.print("LONG ");
-        			rs.shortNames.add(n.getVariable(0).getNameAsString());
+        			rs.longNames.add(n.getVariable(0).getNameAsString());
         			if(n.getVariable(0).getInitializer().isPresent()) {
         				System.out.println("initializer to long: "+
         				    n.getVariable(0).getInitializer().get().toString());
@@ -333,7 +333,7 @@ public class RandoopScraper {
         		}
         		else if(type.equals("double")) {
         			System.out.print("DOUBLE ");
-        			rs.shortNames.add(n.getVariable(0).getNameAsString());
+        			rs.doubleNames.add(n.getVariable(0).getNameAsString());
         			if(n.getVariable(0).getInitializer().isPresent()) {
         				System.out.println("initializer to double: "+
         				    n.getVariable(0).getInitializer().get().toString());
@@ -343,7 +343,7 @@ public class RandoopScraper {
         		}
         		else if(type.equals("float")) {
         			System.out.print("FLOAT ");
-        			rs.shortNames.add(n.getVariable(0).getNameAsString());
+        			rs.floatNames.add(n.getVariable(0).getNameAsString());
         			if(n.getVariable(0).getInitializer().isPresent()) {
         				System.out.println("initializer to float: "+
         				    n.getVariable(0).getInitializer().get().toString());
@@ -353,7 +353,7 @@ public class RandoopScraper {
         		}
         		else if(type.equals("byte")) {
         			System.out.print("BYTE ");
-        			rs.shortNames.add(n.getVariable(0).getNameAsString());
+        			rs.byteNames.add(n.getVariable(0).getNameAsString());
         			if(n.getVariable(0).getInitializer().isPresent()) {
         				System.out.println("initializer to byte: "+
         				    n.getVariable(0).getInitializer().get().toString());
@@ -370,7 +370,7 @@ public class RandoopScraper {
         		}
         		else if(type.equals("char")) {
         			System.out.print("CHAR ");
-        			rs.shortNames.add(n.getVariable(0).getNameAsString());
+        			rs.charNames.add(n.getVariable(0).getNameAsString());
         			if(n.getVariable(0).getInitializer().isPresent()) {
         				System.out.println("initializer to char: "+
         				    n.getVariable(0).getInitializer().get().toString());
@@ -391,21 +391,43 @@ public class RandoopScraper {
         			if(n.getVariable(0).getInitializer().isPresent()) {
         				System.out.println("initializer to String: "+
         				    n.getVariable(0).getInitializer().get().toString());
-                        // Add this literal value to the literals hashmap
-        				rs.addLiteral(type, n.getVariable(0).getInitializer().get().toString());
+                        // Add this literal value to the literals hashmap, trim "'s from ends
+        				String stemp = n.getVariable(0).getInitializer().get().toString().substring
+        						(1, n.getVariable(0).getInitializer().get().toString().length()-1);
+        				rs.addLiteral(type,stemp);
         			}
         		}
         		else if(type.equals("Object")) {
         			System.out.print("OBJECT ");
         			if(n.getVariable(0).getInitializer().isPresent()) {
-        				System.out.println("initializer to Object: "+
-        				    n.getVariable(0).getInitializer().get().toString());
-        				// Object is really a string value
-        				if(n.getVariable(0).getNameAsString().matches("\".*\"")) {
-         			        rs.stringNames.add(n.getVariable(0).getNameAsString());
+        				String sval = null;
+        				List<Node> nodelist = n.getChildNodes();
+        				Iterator<Node> n_iter = nodelist.iterator();
+        				while(n_iter.hasNext()) {
+        					Node onode = n_iter.next();
+        					if(onode instanceof VariableDeclarator) {
+        						if(((VariableDeclarator)onode).getInitializer().isPresent()) {
+	        						Optional<Expression> oe = ((VariableDeclarator)onode).getInitializer();
+	        						Expression expr = oe.get();
+	        						sval = expr.toString();
+	        						System.out.println("declared value: "+sval);
+	        						if(sval.matches("\".*\"")) {
+	        							sval = sval.substring(1, sval.length()-1);
+	        						}
+        						}
+        					}
         				}
-                       // Add this literal value to the literals hashmap
-        				rs.addLiteral(type, n.getVariable(0).getInitializer().get().toString());
+        				if(sval != null) {
+	        				String varname = n.getVariable(0).getInitializer().get().toString();
+	        				System.out.println("initializer to Object: "+varname);
+	        				if(varname.matches("\".*\"")) {
+	         			        rs.stringNames.add(n.getVariable(0).getNameAsString());
+	        				}
+	                       // Add this literal value to the literals hashmap, trim "'s @ ends
+	        				String stemp = n.getVariable(0).getInitializer().get().toString().substring
+	        						(1, n.getVariable(0).getInitializer().get().toString().length()-1);
+	        				rs.addLiteral("String", stemp);
+        				}
         			}
         		}
         		else {
@@ -416,6 +438,41 @@ public class RandoopScraper {
         	super.visit(n,arg);
         }
         
+        /**
+         * helper method to parse Object declarations into concrete types
+         * @param o
+         * @return
+         */
+        public Object parseObject(Object o) {
+        	Object ret = null;
+        	FieldDeclaration n = null;
+        	if(o instanceof FieldDeclaration) {
+        		n = (FieldDeclaration)o;
+        	}
+        	if(n.getVariable(0).getInitializer().isPresent()) {
+				String sval = null;
+				List<Node> nodelist = n.getChildNodes();
+				Iterator<Node> n_iter = nodelist.iterator();
+				while(n_iter.hasNext()) {
+					Node onode = n_iter.next();
+					if(onode instanceof VariableDeclarator) {
+						if(((VariableDeclarator)onode).getInitializer().isPresent()) {
+    						Optional<Expression> oe = ((VariableDeclarator)onode).getInitializer();
+    						Expression expr = oe.get();
+    						sval = expr.toString();
+    						ConcreteType ct = new ConcreteType();
+    						ct.setValue(sval);
+    						ct.setType(null);
+    						System.out.println("declared value: "+sval);
+    						if(sval.matches("\".*\"")) {
+    							sval = sval.substring(1, sval.length()-1);
+    						}
+						}
+					}
+				}
+        	}
+        	return ret;
+        }
         @Override
         public void visit(AssignExpr n, Void arg) {
         	System.out.println("AssignExpr: "+n.toString());
@@ -438,6 +495,72 @@ public class RandoopScraper {
         public void visit(IfStmt n, Void arg) {
         	System.out.println("IfStmt condtion: "+n.getCondition());
         	System.out.println("Else: "+n.getElseStmt().toString());
+        }
+        
+        private class ConcreteType {
+        	private String type;
+        	private String value;
+        	public ConcreteType() {
+        		type = null;
+        		value = null;
+        	}
+        	public String getType() {
+        		return type;
+        	}
+        	public String getValue() {
+        		return value;
+        	}
+        	public void findType() {
+        		if(value != null) {
+        			if(value.contains("\\s"))
+        				this.type = "String";
+        			else if(value.matches("\"\\w.+\""))
+        				this.type = "String";
+        			else if(value.matches("\".+f\""))
+    					this.type = "float";
+        			else if(value.length() > 9 && value.charAt(0) != ('-' | '+'))
+    					this.type = "double";
+    				else if(value.matches("\"\\d*\\.E\\d+\"")) 
+    					this.type = "double";
+        			else if(value.matches("\\d*\\.\\d+$"))
+        				this.type = "double";
+        			else if(value.matches("\\d*\\.\\df$"))
+        				this.type = "float";
+        			else if(value.matches("\\d+\""))
+        				this.type = "int";
+        			else if(value.matches("0x\\d\""))
+        				this.type = "byte";
+        			else if(value.matches("\'.+\'"))
+        				this.type = "char";
+        		}
+        	}
+        	public void setType(String t) {
+        		type = t;
+        	}
+        	public void setValue(String v) {
+        		value = v;
+        	}
+        	public void setValue(int i) {
+        		value = new Integer(i).toString();
+        	}
+        	public void setValue(short s) {
+        		value = new Short(s).toString();
+        	}
+        	public void setValue(double d) {
+        		value = new Double(d).toString();
+        	}
+        	public void setValue(float f) {
+        		value = new Float(f).toString();
+        	}
+        	public void setValue(byte b) {
+        		value = new Byte(b).toString();
+        	}
+        	public void setValue(char c) {
+        		value = new Character(c).toString();
+        	}
+        	public void setValue(long l) {
+        		value = new Long(l).toString();
+        	}
         }
     }
 	
