@@ -500,9 +500,13 @@ public class RandoopScraper {
         private class ConcreteType {
         	private String type;
         	private String value;
+        	private String[] altvalues;
+        	private int altidx;
         	public ConcreteType() {
         		type = null;
         		value = null;
+        		altvalues = new String[6];
+        		altidx = 0;
         	}
         	public String getType() {
         		return type;
@@ -510,30 +514,69 @@ public class RandoopScraper {
         	public String getValue() {
         		return value;
         	}
+        	public String[] getAlternates() {
+        		return altvalues;
+        	}
         	public void findType() {
         		if(value != null) {
-        			if(value.contains("^\"\\s\"$"))
-        				this.type = "String";
-        			else if(value.matches("^\"\\w.+\"$"))
-        				this.type = "String";
-        			else if(value.matches("^.+f$"))
-    					this.type = "float";
-        			else if(value.length() > 9 && value.charAt(0) != ('-' | '+'))
-    					this.type = "double";
-    				else if(value.matches("^\\d*\\.\\d+E\\d+$")) 
-    					this.type = "double";
-    				else if(value.matches("^\\d+\\.\\d*E\\d+$"))
-    					this.type = "double";
-        			else if(value.matches("^\\d*\\.\\d+$"))
-        				this.type = "double";
-        			else if(value.matches("^\\d*\\.\\df$"))
-        				this.type = "float";
-        			else if(value.matches("^\\d+$"))
-        				this.type = "int";
-        			else if(value.matches("^0x\\d+$"))
-        				this.type = "byte";
-        			else if(value.matches("^\'.\'$") && value.length() == 3)
-        				this.type = "char";
+        			if(value.matches("^\"\\w.+\"$")) {
+        				if(this.type == null) this.type = "String";
+        				this.altvalues[altidx++] = "String";
+        			}
+        			else if(value.length() > 9 && value.charAt(0) != ('-' | '+')) {
+        				if(this.type == null) this.type = "double";
+        				this.altvalues[altidx++] = "double";
+        				this.altvalues[altidx++] = "float";
+    				}
+    				else if(value.matches("^\\d*\\.\\d+E\\d+$")) {
+    					if(this.type == null) this.type = "double";
+        				this.altvalues[altidx++] = "double";
+        				this.altvalues[altidx++] = "float";
+    				}
+    				else if(value.matches("^\\d+\\.\\d*E\\d+$")) {
+    					if(this.type == null) this.type = "double";
+        				this.altvalues[altidx++] = "double";
+        				this.altvalues[altidx++] = "float";
+    				}
+        			else if(value.matches("^\\d*\\.\\d+$")) {
+        				if(this.type == null) this.type = "double";
+        				this.altvalues[altidx++] = "double";
+        				this.altvalues[altidx++] = "float";
+        			}
+        			else if(value.matches("^.+f$")) {
+        				if(this.type == null) this.type = "float";
+        				this.altvalues[altidx++] = "float";
+        				this.altvalues[altidx++] = "double";
+       			    }
+        			else if(value.matches("^\\d*\\.\\df$")) {
+        				if(this.type == null) this.type = "float";
+        				this.altvalues[altidx++] = "float";
+        				this.altvalues[altidx++] = "double";
+       			}
+        			else if(value.matches("^\\d+$")) {
+        				if(this.type == null) this.type = "int";
+        				this.altvalues[altidx++] = "int";
+        				this.altvalues[altidx++] = "byte";
+        				this.altvalues[altidx++] = "char";
+       			}
+        			else if(value.matches("^0x\\d+$")) {
+        				if(this.type == null) this.type = "byte";
+        				this.altvalues[altidx++] = "byte";
+        				this.altvalues[altidx++] = "int";
+        				this.altvalues[altidx++] = "char";
+        			}
+        			else if(value.matches("^[0][0-7]+$")) {
+        				if(this.type == null) this.type = "char";
+        				this.altvalues[altidx++] = "char";
+        				this.altvalues[altidx++] = "int";
+        				this.altvalues[altidx++] = "byte";
+        			}
+        			else if(value.matches("^\'.\'$") && value.length() == 3) {
+        				if(this.type == null) this.type = "char";
+        				this.altvalues[altidx++] = "char";
+        				this.altvalues[altidx++] = "int";
+        				this.altvalues[altidx++] = "byte";
+        			}
         		}
         	}
         	public void setType(String t) {
