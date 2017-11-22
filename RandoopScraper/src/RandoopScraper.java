@@ -410,6 +410,16 @@ public class RandoopScraper {
 	        						Optional<Expression> oe = ((VariableDeclarator)onode).getInitializer();
 	        						Expression expr = oe.get();
 	        						sval = expr.toString();
+	        						boolean clean = false;
+	        						while(!clean) {
+		        						if(sval.contains("(")) {
+		        							int start = sval.indexOf("(");
+		        							int end = sval.lastIndexOf(")");
+		        							String tmpstr = sval.substring(start,end);
+		        							sval = tmpstr;
+		        						}
+		        						else clean = true;
+	        						}
 	        						System.out.println("declared value: "+sval);
 	        						if(sval.matches("\".*\"")) {
 	        							sval = sval.substring(1, sval.length()-1);
@@ -417,16 +427,60 @@ public class RandoopScraper {
         						}
         					}
         				}
-        				if(sval != null) {
+        				if(sval != null) { // svar has the unquoted string, if its a string
 	        				String varname = n.getVariable(0).getInitializer().get().toString();
 	        				System.out.println("initializer to Object: "+varname);
-	        				if(varname.matches("\".*\"")) {
-	         			        rs.stringNames.add(n.getVariable(0).getNameAsString());
+	        				ConcreteType ct = new ConcreteType();
+	        				ct.setValue(varname); // need the quoted type here
+	        				ct.findType();
+	        				String[] cttypes = ct.getAlternates();
+	        				if(cttypes.length > 0) {
+	        					String rsname = null;
+	        					if(varname.matches("\".*\"")) {
+		         			        rsname = n.getVariable(0).getNameAsString();
+		        				}
+	        					for(String ctype : cttypes) {
+	        						if(ctype.equals("String")) {
+	        							if(rsname != null) rs.stringNames.add(rsname);
+	        							rs.addLiteral(ctype, sval);
+	        						}
+	        						else if(ctype.equals("int")) {
+	        							if(rsname != null) rs.intNames.add(rsname);
+	        							rs.addLiteral(ctype, sval);
+	        						}
+	        						else if(ctype.equals("short")) {
+	        							if(rsname != null) rs.shortNames.add(rsname);
+	        							rs.addLiteral(ctype, sval);
+	        						}
+	        						else if(ctype.equals("long")) {
+	        							if(rsname != null) rs.longNames.add(rsname);
+	        							rs.addLiteral(ctype, sval);
+	        						}
+	        						else if(ctype.equals("double")) {
+	        							if(rsname != null) rs.doubleNames.add(rsname);
+	        							rs.addLiteral(ctype, sval);
+	        						}
+	        						else if(ctype.equals("float")) {
+	        							if(rsname != null) rs.floatNames.add(rsname);
+	        							rs.addLiteral(ctype, sval);
+	        						}
+	        						else if(ctype.equals("byte")) {
+	        							if(rsname != null) rs.byteNames.add(rsname);
+	        							rs.addLiteral(ctype, sval);
+	        						}
+	        						else if(ctype.equals("char")) {
+	        							if(rsname != null) rs.charNames.add(rsname);
+	        							rs.addLiteral(ctype, sval);
+	        						}
+	        					}
 	        				}
+	        				//if(varname.matches("\".*\"")) {
+	         			    //    rs.stringNames.add(n.getVariable(0).getNameAsString());
+	        				//}
 	                       // Add this literal value to the literals hashmap, trim "'s @ ends
-	        				String stemp = n.getVariable(0).getInitializer().get().toString().substring
-	        						(1, n.getVariable(0).getInitializer().get().toString().length()-1);
-	        				rs.addLiteral("String", stemp);
+	        				//String stemp = n.getVariable(0).getInitializer().get().toString().substring
+	        				//		(1, n.getVariable(0).getInitializer().get().toString().length()-1);
+	        				//rs.addLiteral("String", sval);
         				}
         			}
         		}
@@ -505,7 +559,7 @@ public class RandoopScraper {
         	public ConcreteType() {
         		type = null;
         		value = null;
-        		altvalues = new String[6];
+        		altvalues = new String[0];
         		altidx = 0;
         	}
         	public String getType() {
@@ -521,58 +575,69 @@ public class RandoopScraper {
         		if(value != null) {
         			if(value.matches("^\"\\w.+\"$")) {
         				if(this.type == null) this.type = "String";
+        				this.altvalues = new String[this.altvalues.length+1];
         				this.altvalues[altidx++] = "String";
         			}
-        			else if(value.length() > 9 && value.charAt(0) != ('-' | '+')) {
+        			else if(value.length() > 9 && value.matches("\\d*\\.\\d+") && value.charAt(0) != ('-' | '+')) {
         				if(this.type == null) this.type = "double";
+        				this.altvalues = new String[this.altvalues.length+2];
         				this.altvalues[altidx++] = "double";
         				this.altvalues[altidx++] = "float";
     				}
-    				else if(value.matches("^\\d*\\.\\d+E\\d+$")) {
+    				else if(value.matches("^[-]?\\d*\\.\\d+E\\d+$")) {
     					if(this.type == null) this.type = "double";
+        				this.altvalues = new String[this.altvalues.length+2];
         				this.altvalues[altidx++] = "double";
         				this.altvalues[altidx++] = "float";
     				}
     				else if(value.matches("^\\d+\\.\\d*E\\d+$")) {
     					if(this.type == null) this.type = "double";
+        				this.altvalues = new String[this.altvalues.length+2];
         				this.altvalues[altidx++] = "double";
         				this.altvalues[altidx++] = "float";
     				}
         			else if(value.matches("^\\d*\\.\\d+$")) {
         				if(this.type == null) this.type = "double";
+        				this.altvalues = new String[this.altvalues.length+2];
         				this.altvalues[altidx++] = "double";
         				this.altvalues[altidx++] = "float";
         			}
         			else if(value.matches("^.+f$")) {
         				if(this.type == null) this.type = "float";
-        				this.altvalues[altidx++] = "float";
+        				this.altvalues = new String[this.altvalues.length+2];
+                        this.altvalues[altidx++] = "float";
         				this.altvalues[altidx++] = "double";
        			    }
         			else if(value.matches("^\\d*\\.\\df$")) {
         				if(this.type == null) this.type = "float";
+        				this.altvalues = new String[this.altvalues.length+2];
         				this.altvalues[altidx++] = "float";
         				this.altvalues[altidx++] = "double";
        			}
         			else if(value.matches("^\\d+$")) {
         				if(this.type == null) this.type = "int";
+        				this.altvalues = new String[this.altvalues.length+3];
         				this.altvalues[altidx++] = "int";
         				this.altvalues[altidx++] = "byte";
         				this.altvalues[altidx++] = "char";
        			}
         			else if(value.matches("^0x\\d+$")) {
         				if(this.type == null) this.type = "byte";
+        				this.altvalues = new String[this.altvalues.length+3];
         				this.altvalues[altidx++] = "byte";
         				this.altvalues[altidx++] = "int";
         				this.altvalues[altidx++] = "char";
         			}
         			else if(value.matches("^[0][0-7]+$")) {
         				if(this.type == null) this.type = "char";
+        				this.altvalues = new String[this.altvalues.length+3];
         				this.altvalues[altidx++] = "char";
         				this.altvalues[altidx++] = "int";
         				this.altvalues[altidx++] = "byte";
         			}
         			else if(value.matches("^\'.\'$") && value.length() == 3) {
         				if(this.type == null) this.type = "char";
+        				this.altvalues = new String[this.altvalues.length+3];
         				this.altvalues[altidx++] = "char";
         				this.altvalues[altidx++] = "int";
         				this.altvalues[altidx++] = "byte";
