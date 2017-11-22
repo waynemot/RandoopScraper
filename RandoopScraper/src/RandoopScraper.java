@@ -11,6 +11,7 @@ import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.*;
 import com.github.javaparser.ast.expr.*;
+import com.github.javaparser.ast.nodeTypes.NodeWithVariables;
 import com.github.javaparser.ast.stmt.*;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 
@@ -213,7 +214,7 @@ public class RandoopScraper {
 		    	rs.createLiteralsFile();
 			}
 			else {
-				System.out.println("Usage: PlayJavaparser java-source-file-or-dir");
+				System.out.println("Usage: java RandoopScraper java-source-file-or-dir-tree");
 				System.exit(0);
 			}
 		
@@ -226,7 +227,7 @@ public class RandoopScraper {
 	 */
 	private void createLiteralsFile() {
 		if(!literalslist.isEmpty()) {
-			File out = new File("literals_list.txt");
+			File out = new File("new_literals_list.txt");
 			try {
 				if(!out.exists()) {
 					out.createNewFile();
@@ -299,6 +300,9 @@ public class RandoopScraper {
         
         @Override
         public void visit(FieldDeclaration n, Void arg) {
+        	if(n instanceof NodeWithVariables) {
+        		System.out.println("Field Declaration Node w/Vars");
+        	}
         	String type = ((FieldDeclaration)n).getElementType().asString();
         	if(((FieldDeclaration)n).getElementType().isPrimitiveType()) {
         		if(type.equals("int")) {
@@ -307,6 +311,13 @@ public class RandoopScraper {
         			if(n.getVariable(0).getInitializer().isPresent()) {
         				System.out.println("initializer to int: "+
         				    n.getVariable(0).getInitializer().get().toString());
+        				NodeList<VariableDeclarator> vdnodes = n.getVariables();
+        				for(VariableDeclarator vd : vdnodes) {
+        					List<Node> vd_children = vd.getChildNodes();
+        					for(Node vd_child : vd_children) {
+        						vd_child.accept(this, null);
+        					}
+        				}
                         // Add this literal value to the literals hashmap
         				rs.addLiteral(type, n.getVariable(0).getInitializer().get().toString());
         			}
@@ -551,6 +562,32 @@ public class RandoopScraper {
         	System.out.println("Else: "+n.getElseStmt().toString());
         }
         
+        @Override
+        public void visit(DoubleLiteralExpr n, Void arg) {
+        	System.out.println("DoubleLiteralExpr: "+n.asDouble());
+        }
+        
+        @Override
+        public void visit(CharLiteralExpr n, Void arg) {
+        	System.out.println("CharLiteralExpr: "+n.asChar());
+        }
+        
+        @Override
+        public void visit(IntegerLiteralExpr n, Void arg) {
+        	System.out.println("IntegerLiteralExpr: "+n.asInt());
+        }
+        
+        @Override
+        public void visit(LongLiteralExpr n, Void arg) {
+        	System.out.println("LongLiteralExpr: "+n.asLong());
+        }
+        
+        @Override
+        public void visit(StringLiteralExpr n, Void arg) {
+        	System.out.println("StringLiteralExpr: "+n.asString());
+        }
+        
+        
         private class ConcreteType {
         	private String type;
         	private String value;
@@ -673,7 +710,7 @@ public class RandoopScraper {
         	}
         }
     }
-	
+		
 	@SuppressWarnings("serial")
 	protected class LiteralMap extends HashMap<String, ArrayList<String>> {
 		HashMap<String, ArrayList<String>> type_vals;
