@@ -6,27 +6,26 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.Stack;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
-import com.github.javaparser.ast.expr.AssignExpr;
-import com.github.javaparser.ast.expr.CharLiteralExpr;
-import com.github.javaparser.ast.expr.DoubleLiteralExpr;
-import com.github.javaparser.ast.expr.Expression;
-import com.github.javaparser.ast.expr.IntegerLiteralExpr;
-import com.github.javaparser.ast.expr.LongLiteralExpr;
-import com.github.javaparser.ast.expr.StringLiteralExpr;
+import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.nodeTypes.NodeWithVariables;
+import com.github.javaparser.ast.stmt.ExpressionStmt;
 import com.github.javaparser.ast.stmt.ForStmt;
 import com.github.javaparser.ast.stmt.IfStmt;
+import com.github.javaparser.ast.stmt.SwitchEntryStmt;
+import com.github.javaparser.ast.stmt.WhileStmt;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 
 public class Scraper {
@@ -53,49 +52,68 @@ public class Scraper {
 
 	HashMap<String, LiteralMap> literalslist; // maps class to data-types/values map
 	
+	public Scraper() {
+		filelist = new Stack<String>();
+		initVarNameLists();
+		currentClass = "";
+		currentPkg = "";
+		literalslist = new HashMap<String, LiteralMap>();
+	}
+   
+    public void initVarNameLists() {
+    	intNames = new ArrayList<>();
+		byteNames = new ArrayList<>();
+		shortNames = new ArrayList<>();
+		longNames = new ArrayList<>();
+		floatNames = new ArrayList<>();
+		doubleNames = new ArrayList<>();
+		charNames = new ArrayList<>();
+		stringNames = new ArrayList<>();
+    }
+    
     public void parseFilesArgs(String fpath) {
-    	if(fpath != null) {
-    		File fp = new File(fpath);
-    		if(fp.exists()) {
-    			if(fp.isDirectory()) {
-    				File[] flist = fp.listFiles();
-    				if(flist != null) {
-	    				for(int i = 0; i < flist.length; i++) {
-	    					if(flist[i].isFile()) {
-	    						if(flist[i].getName().matches(".*.java$")) {
-	    							try {
-										filelist.push(flist[i].getCanonicalPath());
+	    	if(fpath != null) {
+	    		File fp = new File(fpath);
+	    		if(fp.exists()) {
+	    			if(fp.isDirectory()) {
+	    				File[] flist = fp.listFiles();
+	    				if(flist != null) {
+		    				for(int i = 0; i < flist.length; i++) {
+		    					if(flist[i].isFile()) {
+		    						if(flist[i].getName().matches(".*.java$")) {
+		    							try {
+											filelist.push(flist[i].getCanonicalPath());
+										} catch (IOException e) {
+											System.err.println("Error: failed to get canonical path for file in path");
+											e.printStackTrace();
+											System.exit(1);
+										}
+		    						}
+		    					}
+		    					else if(flist[i].isDirectory()) {
+		    						try {
+										parseFilesArgs(flist[i].getCanonicalPath());
 									} catch (IOException e) {
-										System.err.println("Error: failed to get canonical path for file in path");
+										System.err.println("Error: failed to get canonical path for file path");
 										e.printStackTrace();
-										System.exit(1);
 									}
-	    						}
-	    					}
-	    					else if(flist[i].isDirectory()) {
-	    						try {
-									parseFilesArgs(flist[i].getCanonicalPath());
-								} catch (IOException e) {
-									System.err.println("Error: failed to get canonical path for file path");
-									e.printStackTrace();
-								}
-	    					}
+		    					}
+		    				}
+		    			}
+	    			}
+	    			else {
+	    				if(fp.getName().matches(".*.java$")) {
+	    				    try {
+								filelist.push(fp.getCanonicalPath());
+							} catch (IOException e) {
+								System.err.println("Error: failed to get canonical path for specified file");
+								e.printStackTrace();
+								System.exit(1);
+							}
 	    				}
 	    			}
-    			}
-    			else {
-    				if(fp.getName().matches(".*.java$")) {
-    				    try {
-							filelist.push(fp.getCanonicalPath());
-						} catch (IOException e) {
-							System.err.println("Error: failed to get canonical path for specified file");
-							e.printStackTrace();
-							System.exit(1);
-						}
-    				}
-    			}
-    		}
-    	}
+	    		}
+	    	}
     }
     /**
      * get the list of files scanned
@@ -250,71 +268,171 @@ public class Scraper {
 			else {
 				rs.currentClass = n.getNameAsString();
 				System.out.println("ContainingClassDec: "+n.getNameAsString());
-				super.visit(n, arg);
 			}
+			super.visit(n, arg);
 		}
 		
 		@Override
-        public void visit(EnumDeclaration n, Void arg) {
-        	System.out.println(n.getNameAsString());
-        	super.visit(n, arg);
+		public void visit(ExpressionStmt n, Void arg) {
+			System.out.println("ExpressionStmt: "+n.toString());
+			List<Node> children = n.getChildNodes();
+	        	for(Node child : children) {
+	        		child.accept(this, null);
+	        	}
+			super.visit(n, arg);
+		}
+		
+		@Override
+		public void visit(WhileStmt n, Void arg) {
+			System.out.println("WhileStmt: "+n.toString());
+			List<Node> children = n.getChildNodes();
+	        	for(Node child : children) {
+	        		child.accept(this, null);
+	        	}
+			super.visit(n, arg);
+		}
+		
+		@Override
+		public void visit(SwitchEntryStmt n, Void arg) {
+			System.out.println("SwitchEntryStmt: "+n.toString());
+			List<Node> children = n.getChildNodes();
+	        	for(Node child : children) {
+	        		child.accept(this, null);
+	        	}
+			super.visit(n, arg);
+		}
+		
+		@Override
+        public void visit(MethodCallExpr n, Void arg) {
+        	    System.out.println("MethodCallExpr: "+n.toString());
+        	    List<Node> children = n.getChildNodes();
+        	    for(Node child : children) {
+        	    	    child.accept(this, null);
+        	    }
+        	    super.visit(n, arg);
         }
 		
-		public void visit(FieldDeclaration n, Void arg) {
-        	if(n instanceof NodeWithVariables) {
-        		System.out.println("Field Declaration Node w/Vars");
-        	}
-        	System.out.println("Field Declaration: "+n.getVariables().toString());
-        	super.visit(n,arg);
-		}
-		
 		@Override
-	    public void visit(AssignExpr n, Void arg) {
-        	System.out.println("AssignExpr: "+n.toString());
-        	super.visit(n, arg);
-	    }
-        @Override
         public void visit(ForStmt n, Void arg) {
-        	NodeList<Expression> nl = n.getInitialization();
-        	int ncnt = 1;
-        	Iterator<Expression> iter = nl.iterator();
-        	System.out.print("ForStmtInit: ");
-        	while(iter.hasNext()) {
-        	    System.out.println("init op "+ncnt+": "+iter.next().toString());
-        	    ncnt++;
-        	}
-        	Expression condex = n.getCompare().get();
-        	System.out.println("ForStmt condition: "+condex.toString());
+	        	NodeList<Expression> nl = n.getInitialization();
+	        	int ncnt = 1;
+	        	Iterator<Expression> iter = nl.iterator();
+	        	System.out.print("ForStmtInit: ");
+	        	while(iter.hasNext()) {
+	        		Expression e = iter.next();
+	        	    System.out.println("init op "+ncnt+": "+e.toString());
+	        	    ncnt++;
+	        	    e.accept(this, null);
+	        	}
+	        	Expression condex = n.getCompare().get();
+	        	System.out.println("ForStmt condition: "+condex.toString());
+	        	if(condex instanceof AssignExpr) {
+	        		((AssignExpr)condex).accept(this, null);
+	        	}
+	        	super.visit(n, arg);
         }
+
         @Override
         public void visit(IfStmt n, Void arg) {
-        	System.out.println("IfStmt condtion: "+n.getCondition());
-        	System.out.println("Else: "+n.getElseStmt().toString());
+	        	System.out.println("IfStmt condtion: "+n.getCondition());
+	        	System.out.println("Else: "+n.getElseStmt().toString());
+	        	List<Node> children = n.getChildNodes();
+	        	for(Node child : children) {
+	        		child.accept(this, null);
+	        	}
+	        	super.visit(n, arg);
         }
-        
+
+		@Override
+        public void visit(EnumDeclaration n, Void arg) {
+	        	System.out.println(n.getNameAsString());
+	        	List<Node> children = n.getChildNodes();
+	        	for(Node child : children) {
+	        		child.accept(this, null);
+	        	}
+	        	super.visit(n, arg);
+        }
+
+		@Override
+		public void visit(FieldDeclaration n, Void arg) {
+	        	System.out.println("Field Declaration: "+n.toString());
+	        	if(n instanceof NodeWithVariables) {
+	        		System.out.println("Field Declaration Node w/Vars");
+	        		List<Node> children = n.getChildNodes();
+	        		for(Node child : children) {
+	        			child.accept(this, null);
+	        		}
+	        	}
+	        	super.visit(n,arg);
+		}
+		
+		@Override
+		public void visit(ArrayInitializerExpr n, Void arg) {
+			System.out.println("ArrayInitExpr: "+n.toString());
+			List<Node> children = n.getChildNodes();
+			for(Node child : children) {
+				child.accept(this, null);
+			}
+			super.visit(n, arg);
+		}
+
+		@Override
+		public void visit(EnclosedExpr n, Void arg) {
+			System.out.println("EnclosedExpr: "+n.toString());
+			List<Node> children = n.getChildNodes();
+			for(Node child : children) {
+				child.accept(this, null);
+			}
+			super.visit(n, arg);
+		}
+		@Override
+	    public void visit(AssignExpr n, Void arg) {
+	        	System.out.println("AssignExpr: "+n.toString());
+	        	List<Node> children = n.getChildNodes();
+	        	for(Node child : children) {
+	        		child.accept(this, null);
+	        	}
+	        	super.visit(n, arg);
+	    }
+		
+		@Override
+		public void visit(VariableDeclarationExpr n, Void arg) {
+			System.out.println("VarDeclExpr: "+n.toString());
+			List<Node> children = n.getChildNodes();
+			for(Node child : children) {
+				child.accept(this, null);
+			}
+			super.visit(n, arg);
+		}
+
         @Override
         public void visit(DoubleLiteralExpr n, Void arg) {
-        	System.out.println("DoubleLiteralExpr: "+n.asDouble());
+        		System.out.println("DoubleLiteralExpr: "+n.asDouble());
+        		super.visit(n, arg);
         }
         
         @Override
         public void visit(CharLiteralExpr n, Void arg) {
-        	System.out.println("CharLiteralExpr: "+n.asChar());
+        		System.out.println("CharLiteralExpr: "+n.asChar());
+        		super.visit(n, arg);
         }
         
         @Override
         public void visit(IntegerLiteralExpr n, Void arg) {
-        	System.out.println("IntegerLiteralExpr: "+n.asInt());
+        	    System.out.println("IntegerLiteralExpr: "+n.asInt());
+        	    super.visit(n, arg);
         }
         
         @Override
         public void visit(LongLiteralExpr n, Void arg) {
-        	System.out.println("LongLiteralExpr: "+n.asLong());
+        		System.out.println("LongLiteralExpr: "+n.asLong());
+        		super.visit(n, arg);
         }
         
         @Override
         public void visit(StringLiteralExpr n, Void arg) {
-        	System.out.println("StringLiteralExpr: "+n.asString());
+        		System.out.println("StringLiteralExpr: "+n.asString());
+        		super.visit(n, arg);
         }
 	}
 	
