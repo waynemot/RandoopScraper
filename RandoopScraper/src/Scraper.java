@@ -17,12 +17,17 @@ import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.EnumConstantDeclaration;
 import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
+import com.github.javaparser.ast.body.InitializerDeclaration;
 import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.nodeTypes.NodeWithVariables;
+import com.github.javaparser.ast.stmt.DoStmt;
+import com.github.javaparser.ast.stmt.ExplicitConstructorInvocationStmt;
 import com.github.javaparser.ast.stmt.ExpressionStmt;
 import com.github.javaparser.ast.stmt.ForStmt;
+import com.github.javaparser.ast.stmt.ForeachStmt;
 import com.github.javaparser.ast.stmt.IfStmt;
 import com.github.javaparser.ast.stmt.SwitchEntryStmt;
 import com.github.javaparser.ast.stmt.WhileStmt;
@@ -248,7 +253,7 @@ public class Scraper {
 		    	rs.createLiteralsFile();
 			}
 			else {
-				System.out.println("Usage: RandoopScraper java-source-file-or-dir");
+				System.out.println("Usage: Scraper java-source-file-or-dir");
 				System.exit(0);
 			}
 		}
@@ -268,139 +273,6 @@ public class Scraper {
 			else {
 				rs.currentClass = n.getNameAsString();
 				System.out.println("ContainingClassDec: "+n.getNameAsString());
-			}
-			super.visit(n, arg);
-		}
-		
-		@Override
-		public void visit(ExpressionStmt n, Void arg) {
-			System.out.println("ExpressionStmt: "+n.toString());
-			List<Node> children = n.getChildNodes();
-	        	for(Node child : children) {
-	        		child.accept(this, null);
-	        	}
-			super.visit(n, arg);
-		}
-		
-		@Override
-		public void visit(WhileStmt n, Void arg) {
-			System.out.println("WhileStmt: "+n.toString());
-			List<Node> children = n.getChildNodes();
-	        	for(Node child : children) {
-	        		child.accept(this, null);
-	        	}
-			super.visit(n, arg);
-		}
-		
-		@Override
-		public void visit(SwitchEntryStmt n, Void arg) {
-			System.out.println("SwitchEntryStmt: "+n.toString());
-			List<Node> children = n.getChildNodes();
-	        	for(Node child : children) {
-	        		child.accept(this, null);
-	        	}
-			super.visit(n, arg);
-		}
-		
-		@Override
-        public void visit(MethodCallExpr n, Void arg) {
-        	    System.out.println("MethodCallExpr: "+n.toString());
-        	    List<Node> children = n.getChildNodes();
-        	    for(Node child : children) {
-        	    	    child.accept(this, null);
-        	    }
-        	    super.visit(n, arg);
-        }
-		
-		@Override
-        public void visit(ForStmt n, Void arg) {
-	        	NodeList<Expression> nl = n.getInitialization();
-	        	int ncnt = 1;
-	        	Iterator<Expression> iter = nl.iterator();
-	        	System.out.print("ForStmtInit: ");
-	        	while(iter.hasNext()) {
-	        		Expression e = iter.next();
-	        	    System.out.println("init op "+ncnt+": "+e.toString());
-	        	    ncnt++;
-	        	    e.accept(this, null);
-	        	}
-	        	Expression condex = n.getCompare().get();
-	        	System.out.println("ForStmt condition: "+condex.toString());
-	        	if(condex instanceof AssignExpr) {
-	        		((AssignExpr)condex).accept(this, null);
-	        	}
-	        	super.visit(n, arg);
-        }
-
-        @Override
-        public void visit(IfStmt n, Void arg) {
-	        	System.out.println("IfStmt condtion: "+n.getCondition());
-	        	System.out.println("Else: "+n.getElseStmt().toString());
-	        	List<Node> children = n.getChildNodes();
-	        	for(Node child : children) {
-	        		child.accept(this, null);
-	        	}
-	        	super.visit(n, arg);
-        }
-
-		@Override
-        public void visit(EnumDeclaration n, Void arg) {
-	        	System.out.println(n.getNameAsString());
-	        	List<Node> children = n.getChildNodes();
-	        	for(Node child : children) {
-	        		child.accept(this, null);
-	        	}
-	        	super.visit(n, arg);
-        }
-
-		@Override
-		public void visit(FieldDeclaration n, Void arg) {
-	        	System.out.println("Field Declaration: "+n.toString());
-	        	if(n instanceof NodeWithVariables) {
-	        		System.out.println("Field Declaration Node w/Vars");
-	        		List<Node> children = n.getChildNodes();
-	        		for(Node child : children) {
-	        			child.accept(this, null);
-	        		}
-	        	}
-	        	super.visit(n,arg);
-		}
-		
-		@Override
-		public void visit(ArrayInitializerExpr n, Void arg) {
-			System.out.println("ArrayInitExpr: "+n.toString());
-			List<Node> children = n.getChildNodes();
-			for(Node child : children) {
-				child.accept(this, null);
-			}
-			super.visit(n, arg);
-		}
-
-		@Override
-		public void visit(EnclosedExpr n, Void arg) {
-			System.out.println("EnclosedExpr: "+n.toString());
-			List<Node> children = n.getChildNodes();
-			for(Node child : children) {
-				child.accept(this, null);
-			}
-			super.visit(n, arg);
-		}
-		@Override
-	    public void visit(AssignExpr n, Void arg) {
-	        	System.out.println("AssignExpr: "+n.toString());
-	        	List<Node> children = n.getChildNodes();
-	        	for(Node child : children) {
-	        		child.accept(this, null);
-	        	}
-	        	super.visit(n, arg);
-	    }
-		
-		@Override
-		public void visit(VariableDeclarationExpr n, Void arg) {
-			System.out.println("VarDeclExpr: "+n.toString());
-			List<Node> children = n.getChildNodes();
-			for(Node child : children) {
-				child.accept(this, null);
 			}
 			super.visit(n, arg);
 		}
