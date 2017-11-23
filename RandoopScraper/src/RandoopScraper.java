@@ -17,6 +17,19 @@ import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 
 import java.util.*;
 
+/**
+ * Main class of the Randoop Scraper/Scanner.  This class
+ * performs the collection of source class filenames, locating
+ * of literal values within each class in that collection and
+ * creation of the Randoop literals output file.  The scraping
+ * scan is performed using the Javaparser library {@link http://javaparser.org}
+ * The resulting output file created is compatible with the Randoop tool
+ * {@link http://github.com/randoop/randoop} and should be included
+ * in the analysis using the --literals-file= command line flag of Randoop.
+ * @author Wayne Motycka
+ * @version 1.0
+ * @date November 2017
+ */
 public class RandoopScraper {
     /**
      * constants defining the standard test values used
@@ -24,15 +37,23 @@ public class RandoopScraper {
      * since adding more of these will not enhance the
      * value set used.
      */
-	
+	/** byte literal defaults of Randoop */
 	static final byte[] bytevals = {-1, 0, 1, 10, 100};
+	/** short literal defaults of Randoop */
 	static final short[] shortvals = {-1, 0, 1, 10, 100};
+	/** int literal defaults of Randoop */
 	static final int[] intvals = {-1, 0, 1, 10, 100};
+	/** long literal defaults of Randoop */
 	static final long[] longvals = { -1, 0, 1, 10, 100};
+	/** float literal defaults of Randoop */
 	static final float[] floatvals = { -1, 0, 1, 10, 100};
+	/** double literal defaults of Randoop */
 	static final double[] doublevals =  {-1, 0, 1, 10, 100};
+	/** char literal defaults of Randoop */
 	static final char[] charvals = { '#', ' ', '4', 'a'};
+	/** String literal defaults of Randoop */
 	static final java.lang.String[] stringvals = { "", "hi!"};
+	// none of these are currently used.
 	protected ArrayList<String> intNames;
 	protected ArrayList<String> byteNames;
 	protected ArrayList<String> shortNames;
@@ -45,8 +66,17 @@ public class RandoopScraper {
 	volatile String currentClass;
 	volatile String currentPkg;
 
+	/**
+	 * Container for storing the literal values by type for each
+	 * Java source file.  Key is the class name, value is a LiteralMap object.
+	 */
 	HashMap<String, LiteralMap> literalslist; // maps class to data-types/values map
 
+	/**
+	 * Create a new RandoopScraper object to perform the literal values
+	 * collecting operation on the filename or path specified on the
+	 * command line.
+	 */
     public RandoopScraper() {
 		filelist = new Stack<String>();
 		initVarNameLists();
@@ -66,6 +96,13 @@ public class RandoopScraper {
 		stringNames = new ArrayList<>();
     }
     
+    /**
+     * parse the file path specified by the user to locate the
+     * source file or files found there.  Append each of these to
+     * the Stack container of the class for the iterative scanning
+     * process.
+     * @param fpath
+     */
     public void parseFilesArgs(String fpath) {
     	if(fpath != null) {
     		File fp = new File(fpath);
@@ -111,8 +148,9 @@ public class RandoopScraper {
     	}
     }
     /**
-     * get the list of files scanned
-     * @return
+     * get the list of files found by the user specified path 
+     * to be scanned for literals.
+     * @return a Stack object containing all the java source files
      */
     public Stack<String> getFiles() {
     	return this.filelist;
@@ -125,6 +163,13 @@ public class RandoopScraper {
     	return this.literalslist;
     }
     
+    /**
+     * add a literal found to the literals list container object
+     * The literals used by Randoop are of 7 types: <br />
+     * int, short, long, byte, float, double and String
+     * @param type the type of literal to add
+     * @param value
+     */
     public void addLiteral(String type, String value) {
     	if(literalslist == null) {
     		literalslist = new HashMap<String, LiteralMap>();
@@ -213,7 +258,6 @@ public class RandoopScraper {
 				System.out.println("Usage: java RandoopScraper java-source-file-or-dir-tree");
 				System.exit(0);
 			}
-		
 		}
 	}
 	
@@ -222,24 +266,36 @@ public class RandoopScraper {
 	 * literalslist container object.
 	 */
 	private void createLiteralsFile() {
+		boolean ok = true; // write/access failure state
 		if(!literalslist.isEmpty()) {
 			File out = new File("new_literals_list.txt");
+			FileOutputStream ofs = null;
 			try {
 				if(!out.exists()) {
 					out.createNewFile();
 				}
-				FileOutputStream ofs = new FileOutputStream(out);
+				ofs = new FileOutputStream(out);
 			} catch (FileNotFoundException e) {
-				System.err.println("open of file output stream failed "+e.getMessage());
+				System.err.println("open of file output stream failed: "+e.getMessage());
 				e.printStackTrace();
+				ok = false;
 			} catch(IOException ioe) {
-				System.err.println("Create of output file failed "+ioe.getMessage());
+				System.err.println("Create of output file failed: "+ioe.getMessage());
 				ioe.printStackTrace();
+				ok = false;
 			}
 			// TODO: CREATE PREAMBLE OF LITERALS FILE HERE
+			String preamble = "";
+			try {
+				ofs.write(preamble.getBytes());
+			} catch (IOException e1) {
+				System.err.println("Error writing preamble to output file "+e1.getMessage());
+				e1.printStackTrace();
+				ok = false;
+			}
 			Set<String> class_set = literalslist.keySet();
 			Iterator<String> class_iter = class_set.iterator();
-			while(class_iter.hasNext()) {
+			while(ok && class_iter.hasNext()) {
 				String currClass = class_iter.next();
 				LiteralMap lm = literalslist.get(currClass);
 				if(lm != null) {
@@ -259,6 +315,13 @@ public class RandoopScraper {
 					}
 				}
 			}
+			if(ofs != null)
+				try {
+					ofs.close();
+				} catch (IOException e) {
+					System.err.println("error closing: "+out.getName()+" "+e.getMessage());
+					e.printStackTrace();
+				}
 		}
 	}
 	
@@ -358,7 +421,7 @@ public class RandoopScraper {
 
         @Override
         public void visit(DoubleLiteralExpr n, Void arg) {
-        	System.out.println("DoubleLiteralExpr: "+n.asDouble());
+        	//System.out.println("DoubleLiteralExpr: "+n.asDouble());
         	if(n.getValue().endsWith("f")) // doubles and floats are same in Javaparser
         		rs.addLiteral("float", n.getValue());
         	rs.addLiteral("double", n.getValue());
@@ -366,13 +429,14 @@ public class RandoopScraper {
         
         @Override
         public void visit(CharLiteralExpr n, Void arg) {
-        	System.out.println("CharLiteralExpr: "+n.asChar());
+        	//System.out.println("CharLiteralExpr: "+n.asChar());
         	rs.addLiteral("char", n.getValue());
         }
         
         @Override
         public void visit(IntegerLiteralExpr n, Void arg) {
-        	System.out.println("IntegerLiteralExpr: "+n.asInt());
+        	//System.out.println("IntegerLiteralExpr: "+n.asInt());
+        	//String inferred_type = n.getParentNode().get().getChildNodes().get(0).toString();
         	rs.addLiteral("int", n.getValue());
         	rs.addLiteral("byte", n.getValue()); // Can't tell diff btwn int/short/byte
         	rs.addLiteral("short", n.getValue()); // so over approximate
@@ -380,17 +444,24 @@ public class RandoopScraper {
         
         @Override
         public void visit(LongLiteralExpr n, Void arg) {
-        	System.out.println("LongLiteralExpr: "+n.asLong());
+        	//System.out.println("LongLiteralExpr: "+n.asLong());
         	rs.addLiteral("long", n.getValue());
         }
         
         @Override
         public void visit(StringLiteralExpr n, Void arg) {
-        	System.out.println("StringLiteralExpr: "+n.asString());
+        	//System.out.println("StringLiteralExpr: "+n.asString());
         	rs.addLiteral("String", n.asString());
         }
 	}
 
+	/**
+	 * A HashMap type object to contain mappings between literal
+	 * type and specific literal values found during the scanning
+	 * process for that type.
+	 * @author Wayne Motycka
+	 *
+	 */
 	@SuppressWarnings("serial")
 	protected class LiteralMap extends HashMap<String, ArrayList<String>> {
 		HashMap<String, ArrayList<String>> type_vals;
