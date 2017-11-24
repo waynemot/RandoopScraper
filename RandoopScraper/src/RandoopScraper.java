@@ -176,7 +176,7 @@ public class RandoopScraper {
     	}
     	if(!literalslist.containsKey(this.currentClass)) {
     		// literalslist needs this class added
-    		ArrayList<String> al = new ArrayList<String>();
+    		TreeSet<String> al = new TreeSet<String>();
     		al.add(value);
     		LiteralMap lm = new LiteralMap();
     		lm.put(type, al);
@@ -190,7 +190,7 @@ public class RandoopScraper {
 			}
 			else { // Don't have this type in HashMap for this class
 				// create a new array list for this data type & add value to it
-				ArrayList<String> al = new ArrayList<String>();
+				TreeSet<String> al = new TreeSet<String>();
 				al.add(value);
 				literalslist.get(currentClass).put(type, al);
 			}
@@ -313,7 +313,7 @@ public class RandoopScraper {
 					Iterator<String> type_iter = type_set.iterator();
 					while(type_iter.hasNext()) {
 						String currType = type_iter.next();
-						ArrayList<String> type_values = lm.get(currType);
+						TreeSet<String> type_values = lm.get(currType);
 						for(String tvalue : type_values) {
 							if(!eliminateDup(currType, tvalue)) {
 								try {
@@ -377,14 +377,30 @@ public class RandoopScraper {
 		}
 		else if(type.equals("byte")) {
 			for(byte b : bytevals) {
-				if(value.matches("^0x")) {
+				if(value.matches("^0x[0-9a-fA-F]+")) { // hex byte case
 					String b_str = Integer.toHexString(b);
-					if(b_str.equals(value)) ret = true;
-					break;
+					if(("0x"+b_str).equalsIgnoreCase(value)) {
+						ret = true;
+						break;
+					}
 				}
-				else if(value.matches("[a-zA-Z]")) {
+				else if(value.matches("[a-zA-Z]")) { // char byte case
 					int value_int = Character.getNumericValue(value.toCharArray()[0]);
 					if(b == value_int) {
+						ret = true;
+						break;
+					}
+				}
+				else if(value.matches("^0[0-7]+")) { // octal byte case
+					int octnum = Integer.parseInt(value);
+					int decnum = 0, i = 0;
+					while(octnum != 0)
+			        {
+			            decnum = decnum + (octnum%10) * (int) Math.pow(8, i);
+			            i++;
+			            octnum = octnum/10;
+			        }
+					if(decnum == b) {
 						ret = true;
 						break;
 					}
@@ -500,10 +516,17 @@ public class RandoopScraper {
 	 *
 	 */
 	@SuppressWarnings("serial")
-	protected class LiteralMap extends HashMap<String, ArrayList<String>> {
+	/*protected class LiteralMap extends HashMap<String, ArrayList<String>> {
+		
 		HashMap<String, ArrayList<String>> type_vals;
 		public LiteralMap() {
 			type_vals = new HashMap<String, ArrayList<String>>();
+		}
+	}*/
+	protected class LiteralMap extends HashMap<String, TreeSet<String>> {
+		HashMap<String, TreeSet<String>> type_vals;
+		public LiteralMap() {
+			type_vals = new HashMap<String, TreeSet<String>>();
 		}
 	}
 	
