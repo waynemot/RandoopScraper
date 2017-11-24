@@ -11,7 +11,7 @@ import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.*;
 import com.github.javaparser.ast.expr.*;
-import com.github.javaparser.ast.nodeTypes.NodeWithVariables;
+import com.github.javaparser.ast.nodeTypes.*;
 import com.github.javaparser.ast.stmt.*;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 
@@ -284,8 +284,7 @@ public class RandoopScraper {
 				ioe.printStackTrace();
 				ok = false;
 			}
-			// TODO: CREATE PREAMBLE OF LITERALS FILE HERE
-			String preamble = "";
+			String preamble = "START CLASSLITERALS\n";
 			try {
 				ofs.write(preamble.getBytes());
 			} catch (IOException e1) {
@@ -300,7 +299,14 @@ public class RandoopScraper {
 				LiteralMap lm = literalslist.get(currClass);
 				if(lm != null) {
 					// Have a set of literals for this currClass
-					// TODO: FORMAT AN OUTPUT STREAM WRITE TO ANNOUNCE THIS CLASS
+					String classpreamble = "CLASSNAME\n"+currClass+"\n";
+					try {
+						ofs.write(classpreamble.getBytes());
+					} catch (IOException e1) {
+						System.err.println("Error writing classname preamble to output file "+e1.getMessage());
+						e1.printStackTrace();
+						ok = false;
+					}
 					Set<String> type_set = lm.keySet();
 					Iterator<String> type_iter = type_set.iterator();
 					while(type_iter.hasNext()) {
@@ -308,10 +314,23 @@ public class RandoopScraper {
 						ArrayList<String> type_values = lm.get(currType);
 						for(String tvalue : type_values) {
 							if(!eliminateDup(currType, tvalue)) {
-								
+								try {
+									ofs.write((currType+":"+tvalue+"\n").getBytes());
+								} catch (IOException e1) {
+									System.err.println("Error writing type:value to output file "+e1.getMessage());
+									e1.printStackTrace();
+									ok = false;
+								}
 							}
-							// TODO: FORMAT AN OUTPUT STRING FOR EACH VALUE
 						}
+					}
+					String classpost = "END CLASSLITERALS\n";
+					try {
+						ofs.write(classpost.getBytes());
+					} catch (IOException e1) {
+						System.err.println("Error writing classpost to output file "+e1.getMessage());
+						e1.printStackTrace();
+						ok = false;
 					}
 				}
 			}
