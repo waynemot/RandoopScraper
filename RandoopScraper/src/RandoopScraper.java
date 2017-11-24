@@ -287,6 +287,7 @@ public class RandoopScraper {
 			String preamble = "START CLASSLITERALS\n";
 			try {
 				ofs.write(preamble.getBytes());
+				ofs.flush();
 			} catch (IOException e1) {
 				System.err.println("Error writing preamble to output file "+e1.getMessage());
 				e1.printStackTrace();
@@ -299,9 +300,10 @@ public class RandoopScraper {
 				LiteralMap lm = literalslist.get(currClass);
 				if(lm != null) {
 					// Have a set of literals for this currClass
-					String classpreamble = "CLASSNAME\n"+currClass+"\n";
+					String classpreamble = "CLASSNAME\n"+currClass+"\nLITERALS\n";
 					try {
 						ofs.write(classpreamble.getBytes());
+						ofs.flush();
 					} catch (IOException e1) {
 						System.err.println("Error writing classname preamble to output file "+e1.getMessage());
 						e1.printStackTrace();
@@ -316,6 +318,7 @@ public class RandoopScraper {
 							if(!eliminateDup(currType, tvalue)) {
 								try {
 									ofs.write((currType+":"+tvalue+"\n").getBytes());
+									ofs.flush();
 								} catch (IOException e1) {
 									System.err.println("Error writing type:value to output file "+e1.getMessage());
 									e1.printStackTrace();
@@ -351,14 +354,15 @@ public class RandoopScraper {
 	 * into the set of literals.
 	 * @param type variable type: one of int, short, byte, long, char, double, float, String
 	 * @param value string representation of the value applied to the type
-	 * @return true if this not an existing Randoop default test input parameter
+	 * @return false if this not an existing Randoop default test input parameter
+	 * true if it already is an existing Randoop input.
 	 */
 	public boolean eliminateDup(String type, String value) {
-		boolean ret = true;
+		boolean ret = false;
 		if(type.equals("String")) {
 			for(String s : stringvals) {
 				if(s.equals(value)) { // if ever found return false
-					ret = false;
+					ret = true;
 					break;
 				}
 			}
@@ -366,23 +370,37 @@ public class RandoopScraper {
 		else if(type.equals("int")) {
 			for(int i : intvals) {
 				if(Integer.parseInt(value) == i) {
-					ret = false;
+					ret = true;
 					break;
 				}
 			}
 		}
 		else if(type.equals("byte")) {
 			for(byte b : bytevals) {
-				if(Byte.parseByte(value) == b) {
-					ret = false;
+				if(value.matches("^0x")) {
+					String b_str = Integer.toHexString(b);
+					if(b_str.equals(value)) ret = true;
 					break;
+				}
+				else if(value.matches("[a-zA-Z]")) {
+					int value_int = Character.getNumericValue(value.toCharArray()[0]);
+					if(b == value_int) {
+						ret = true;
+						break;
+					}
+				}
+				else {
+					if(Byte.parseByte(value) == b) {
+						ret = true;
+						break;
+					}
 				}
 			}
 		}
 		else if(type.equals("short")) {
 			for(short s : shortvals) {
 				if(Short.parseShort(value) == s) {
-					ret = false;
+					ret = true;
 					break;
 				}
 			}
@@ -390,7 +408,7 @@ public class RandoopScraper {
 		else if(type.equals("long")) {
 			for(long l : longvals) {
 				if(Long.parseLong(value) == l) {
-					ret = false;
+					ret = true;
 					break;
 				}
 			}
@@ -398,7 +416,7 @@ public class RandoopScraper {
 		else if(type.equals("float")) {
 			for(float f : floatvals) {
 				if(Float.parseFloat(value) == f) {
-					ret = false;
+					ret = true;
 					break;
 				}
 			}
@@ -406,7 +424,7 @@ public class RandoopScraper {
 		else if(type.equals("double")) {
 			for(double d : doublevals) {
 				if(Double.parseDouble(value) == d) {
-					ret = false;
+					ret = true;
 					break;
 				}
 			}
@@ -414,7 +432,7 @@ public class RandoopScraper {
 		else if(type.equals("char")) {
 			for(char c : charvals) {
 				if(value.indexOf(c) >= 0) {
-					ret = false;
+					ret = true;
 					break;
 				}
 			}
