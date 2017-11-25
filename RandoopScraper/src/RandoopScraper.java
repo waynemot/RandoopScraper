@@ -415,9 +415,27 @@ public class RandoopScraper {
 		}
 		else if(type.equals("short")) {
 			for(short s : shortvals) {
-				if(Short.parseShort(value) == s) {
-					ret = true;
-					break;
+				if(value.startsWith("0")) {// hex & octal
+					int tmpval = Integer.decode(value).intValue();
+					if(tmpval >= Short.MIN_VALUE && 
+							tmpval <= Short.MAX_VALUE &&
+							tmpval == s) {
+						ret = true;
+						break;
+					}
+				}
+				else if (value.matches("[a-z]{1}") && value.length() == 1) { // char literal in a short
+					int tmpval = Character.getNumericValue(value.charAt(0));
+					if(tmpval == s) {
+						ret = true;
+						break;
+					}
+				}
+				else {
+					if(Short.parseShort(value) == s) {
+						ret = true;
+						break;
+					}
 				}
 			}
 		}
@@ -490,9 +508,10 @@ public class RandoopScraper {
         public void visit(IntegerLiteralExpr n, Void arg) {
         	//System.out.println("IntegerLiteralExpr: "+n.asInt());
         	rs.addLiteral("int", n.getValue());
-        	if(Integer.parseInt(n.getValue()) <= Short.MAX_VALUE && Integer.parseInt(n.getValue()) >= Short.MIN_VALUE)
+       		int tmpval = (Integer.decode(n.getValue())).intValue();
+        	if(tmpval <= Short.MAX_VALUE && tmpval >= Short.MIN_VALUE)
         	    rs.addLiteral("short", n.getValue());
-        	if(Integer.parseInt(n.getValue()) <= Byte.MAX_VALUE && Integer.parseInt(n.getValue()) >= Byte.MIN_VALUE)
+        	if(tmpval <= Byte.MAX_VALUE && tmpval >= Byte.MIN_VALUE)
         	    rs.addLiteral("byte", n.getValue());
         }
         
@@ -517,19 +536,11 @@ public class RandoopScraper {
 	 *
 	 */
 	@SuppressWarnings("serial")
-	/*protected class LiteralMap extends HashMap<String, ArrayList<String>> {
-		
-		HashMap<String, ArrayList<String>> type_vals;
-		public LiteralMap() {
-			type_vals = new HashMap<String, ArrayList<String>>();
-		}
-	}*/
 	protected class LiteralMap extends HashMap<String, TreeSet<String>> {
 		HashMap<String, TreeSet<String>> type_vals;
 		public LiteralMap() {
 			type_vals = new HashMap<String, TreeSet<String>>();
 		}
 	}
-	
 }
 
