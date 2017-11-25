@@ -317,7 +317,13 @@ public class RandoopScraper {
 						for(String tvalue : type_values) {
 							if(!eliminateDup(currType, tvalue)) {
 								try {
-									ofs.write((currType+":"+tvalue+"\n").getBytes());
+									ofs.write((currType+":").getBytes());
+								    if(currType.equals("String")) {
+								    	ofs.write(("\""+tvalue+"\"\n").getBytes());
+								    }
+								    else {
+								    	ofs.write((tvalue+"\n").getBytes());
+								    }
 									ofs.flush();
 								} catch (IOException e1) {
 									System.err.println("Error writing type:value to output file "+e1.getMessage());
@@ -385,22 +391,16 @@ public class RandoopScraper {
 					}
 				}
 				else if(value.matches("[a-zA-Z]")) { // char byte case
-					int value_int = Character.getNumericValue(value.toCharArray()[0]);
+					//int value_int = Character.getNumericValue(value.toCharArray()[0]);
+					int value_int = value.toCharArray()[0];
 					if(b == value_int) {
 						ret = true;
 						break;
 					}
 				}
 				else if(value.matches("^0[0-7]+")) { // octal byte case
-					int octnum = Integer.parseInt(value);
-					int decnum = 0, i = 0;
-					while(octnum != 0)
-			        {
-			            decnum = decnum + (octnum%10) * (int) Math.pow(8, i);
-			            i++;
-			            octnum = octnum/10;
-			        }
-					if(decnum == b) {
+					int dval = Integer.decode(value);
+					if(dval == b) {
 						ret = true;
 						break;
 					}
@@ -496,35 +496,40 @@ public class RandoopScraper {
         	if(n.getValue().endsWith("f")) // doubles and floats are same in Javaparser
         		rs.addLiteral("float", n.getValue());
         	rs.addLiteral("double", n.getValue());
+			super.visit(n, arg);
         }
         
         @Override
         public void visit(CharLiteralExpr n, Void arg) {
         	//System.out.println("CharLiteralExpr: "+n.asChar());
         	rs.addLiteral("char", n.getValue());
+			super.visit(n, arg);
         }
         
         @Override
         public void visit(IntegerLiteralExpr n, Void arg) {
-        	//System.out.println("IntegerLiteralExpr: "+n.asInt());
-        	rs.addLiteral("int", n.getValue());
-       		int tmpval = (Integer.decode(n.getValue())).intValue();
+        	//System.out.println("IntegerLiteralExpr: "+n.getValue());
+       		int tmpval = n.asInt();
+        	rs.addLiteral("int", Integer.toString(tmpval));
         	if(tmpval <= Short.MAX_VALUE && tmpval >= Short.MIN_VALUE)
-        	    rs.addLiteral("short", n.getValue());
+        	    rs.addLiteral("short", Integer.toString(tmpval));
         	if(tmpval <= Byte.MAX_VALUE && tmpval >= Byte.MIN_VALUE)
-        	    rs.addLiteral("byte", n.getValue());
+        	    rs.addLiteral("byte", Integer.toString(tmpval));
+			super.visit(n, arg);
         }
         
         @Override
         public void visit(LongLiteralExpr n, Void arg) {
         	//System.out.println("LongLiteralExpr: "+n.asLong());
         	rs.addLiteral("long", n.getValue());
+			super.visit(n, arg);
         }
         
         @Override
         public void visit(StringLiteralExpr n, Void arg) {
         	//System.out.println("StringLiteralExpr: "+n.asString());
         	rs.addLiteral("String", n.asString());
+			super.visit(n, arg);
         }
 	}
 
