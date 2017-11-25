@@ -489,10 +489,11 @@ public class RandoopScraper {
         @Override
         public void visit(IntegerLiteralExpr n, Void arg) {
         	//System.out.println("IntegerLiteralExpr: "+n.asInt());
-        	//String inferred_type = n.getParentNode().get().getChildNodes().get(0).toString();
         	rs.addLiteral("int", n.getValue());
-        	rs.addLiteral("byte", n.getValue()); // Can't tell diff btwn int/short/byte
-        	rs.addLiteral("short", n.getValue()); // so over approximate
+        	if(Integer.parseInt(n.getValue()) <= Short.MAX_VALUE && Integer.parseInt(n.getValue()) >= Short.MIN_VALUE)
+        	    rs.addLiteral("short", n.getValue());
+        	if(Integer.parseInt(n.getValue()) <= Byte.MAX_VALUE && Integer.parseInt(n.getValue()) >= Byte.MIN_VALUE)
+        	    rs.addLiteral("byte", n.getValue());
         }
         
         @Override
