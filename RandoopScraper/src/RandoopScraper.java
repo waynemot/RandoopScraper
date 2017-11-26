@@ -53,24 +53,18 @@ public class RandoopScraper {
 	static final char[] charvals = { '#', ' ', '4', 'a'};
 	/** String literal defaults of Randoop */
 	static final java.lang.String[] stringvals = { "", "hi!"};
-	// none of these are currently used.
-	protected ArrayList<String> intNames;
-	protected ArrayList<String> byteNames;
-	protected ArrayList<String> shortNames;
-	protected ArrayList<String> longNames;
-	protected ArrayList<String> floatNames;
-	protected ArrayList<String> doubleNames;
-	protected ArrayList<String> charNames;
-	protected ArrayList<String> stringNames;
+	/** container used to store java source names */
 	protected Stack<String> filelist;
+	/** current class being scanned */
 	volatile String currentClass;
+	/** current package name of the class being scanned */
 	volatile String currentPkg;
 
 	/**
 	 * Container for storing the literal values by type for each
 	 * Java source file.  Key is the class name, value is a LiteralMap object.
 	 */
-	HashMap<String, LiteralMap> literalslist; // maps class to data-types/values map
+	protected HashMap<String, LiteralMap> literalslist; // maps class to data-types/values map
 
 	/**
 	 * Create a new RandoopScraper object to perform the literal values
@@ -79,22 +73,10 @@ public class RandoopScraper {
 	 */
     public RandoopScraper() {
 		filelist = new Stack<String>();
-		initVarNameLists();
 		currentClass = "";
 		currentPkg = "";
 		literalslist = new HashMap<String, LiteralMap>();
 	}
-   
-    public void initVarNameLists() {
-    	intNames = new ArrayList<>();
-		byteNames = new ArrayList<>();
-		shortNames = new ArrayList<>();
-		longNames = new ArrayList<>();
-		floatNames = new ArrayList<>();
-		doubleNames = new ArrayList<>();
-		charNames = new ArrayList<>();
-		stringNames = new ArrayList<>();
-    }
     
     /**
      * parse the file path specified by the user to locate the
@@ -147,6 +129,7 @@ public class RandoopScraper {
     		}
     	}
     }
+
     /**
      * get the list of files found by the user specified path 
      * to be scanned for literals.
@@ -155,6 +138,7 @@ public class RandoopScraper {
     public Stack<String> getFiles() {
     	return this.filelist;
     }
+
     /**
      * gets the hashmap object containing the literals found for each class
      * @return
@@ -196,6 +180,7 @@ public class RandoopScraper {
 			}
     	}
     }
+
     /**
      * visit the file specified by the path parameter and collect the literal
      * values found there.  When collecting them it is necessary to identify the
@@ -235,6 +220,10 @@ public class RandoopScraper {
     	return ret;
     }
 
+    /**
+     * main method for RandoopScraper application.
+     * @param args the path or java source file name to scrape for literals.
+     */
 	public static void main(String[] args) {
 		String fname = null;
 		RandoopScraper rs = new RandoopScraper();
@@ -356,7 +345,7 @@ public class RandoopScraper {
 	/**
 	 * method to determine if the supplied value is already a
 	 * Randoop default test input parameter.  If it is, then this
-	 * returns false, indicating that the value need not be included
+	 * returns true, indicating that the value need not be included
 	 * into the set of literals.
 	 * @param type variable type: one of int, short, byte, long, char, double, float, String
 	 * @param value string representation of the value applied to the type
@@ -473,6 +462,12 @@ public class RandoopScraper {
 		return ret;
 	}
 
+	/**
+	 * Visitor class used to identify and collect literal values
+	 * from the scanned class.
+	 * @author Wayne Motycka
+	 *
+	 */
 	private static class MethodVisitor extends VoidVisitorAdapter<Void> {
 		RandoopScraper rs;
 		public MethodVisitor(RandoopScraper p) {
