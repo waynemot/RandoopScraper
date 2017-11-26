@@ -493,9 +493,12 @@ public class RandoopScraper {
         @Override
         public void visit(DoubleLiteralExpr n, Void arg) {
         	//System.out.println("DoubleLiteralExpr: "+n.asDouble());
-        	if(n.getValue().endsWith("f")) // doubles and floats are same in Javaparser
+        	if(n.getValue().endsWith("f")) { // doubles and floats are same in Javaparser
         		rs.addLiteral("float", n.getValue());
+        		rs.addLiteral("float", "-"+n.getValue());
+        	}
         	rs.addLiteral("double", n.getValue());
+        	rs.addLiteral("double", "-"+n.getValue());
 			super.visit(n, arg);
         }
         
@@ -511,10 +514,15 @@ public class RandoopScraper {
         	//System.out.println("IntegerLiteralExpr: "+n.getValue());
        		int tmpval = n.asInt();
         	rs.addLiteral("int", Integer.toString(tmpval));
-        	if(tmpval <= Short.MAX_VALUE && tmpval >= Short.MIN_VALUE)
+        	rs.addLiteral("int", "-"+Integer.toString(tmpval));
+        	if(tmpval <= Short.MAX_VALUE && tmpval >= Short.MIN_VALUE) {
         	    rs.addLiteral("short", Integer.toString(tmpval));
-        	if(tmpval <= Byte.MAX_VALUE && tmpval >= Byte.MIN_VALUE)
+        	    rs.addLiteral("short", "-"+Integer.toString(tmpval));
+        	}
+        	if(tmpval <= Byte.MAX_VALUE && tmpval >= Byte.MIN_VALUE) {
         	    rs.addLiteral("byte", Integer.toString(tmpval));
+        	    rs.addLiteral("byte", "-"+Integer.toString(tmpval));
+        	}
 			super.visit(n, arg);
         }
         
@@ -522,6 +530,7 @@ public class RandoopScraper {
         public void visit(LongLiteralExpr n, Void arg) {
         	//System.out.println("LongLiteralExpr: "+n.asLong());
         	rs.addLiteral("long", n.getValue());
+        	rs.addLiteral("long", "-"+n.getValue());
 			super.visit(n, arg);
         }
         
