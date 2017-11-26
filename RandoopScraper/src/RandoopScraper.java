@@ -391,7 +391,6 @@ public class RandoopScraper {
 					}
 				}
 				else if(value.matches("[a-zA-Z]")) { // char byte case
-					//int value_int = Character.getNumericValue(value.toCharArray()[0]);
 					int value_int = value.toCharArray()[0];
 					if(b == value_int) {
 						ret = true;
@@ -499,6 +498,8 @@ public class RandoopScraper {
         	}
         	rs.addLiteral("double", n.getValue());
         	rs.addLiteral("double", "-"+n.getValue());
+        	double d = 1/n.asDouble();
+            rs.addLiteral("double", Double.toString(d));// add reciprocal
 			super.visit(n, arg);
         }
         
@@ -515,6 +516,8 @@ public class RandoopScraper {
        		int tmpval = n.asInt();
         	rs.addLiteral("int", Integer.toString(tmpval));
         	rs.addLiteral("int", "-"+Integer.toString(tmpval));
+        	rs.addLiteral("int", Integer.toString(tmpval-1));
+        	rs.addLiteral("int", Integer.toString(tmpval+1));
         	if(tmpval <= Short.MAX_VALUE && tmpval >= Short.MIN_VALUE) {
         	    rs.addLiteral("short", Integer.toString(tmpval));
         	    rs.addLiteral("short", "-"+Integer.toString(tmpval));
