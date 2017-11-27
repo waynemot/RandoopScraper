@@ -159,26 +159,26 @@ public class RandoopScraper {
     	if(literalslist == null) {
     		literalslist = new HashMap<String, LiteralMap>();
     	}
-    	if(!literalslist.containsKey(this.currentClass)) {
+    	String pkgClass = this.currentPkg.replaceAll(";[\\s]{0,2}$", "")+"."+this.currentClass;
+    	if(!literalslist.containsKey(pkgClass)) {
     		// literalslist needs this class added
     		TreeSet<String> al = new TreeSet<String>();
     		al.add(value);
     		LiteralMap lm = new LiteralMap();
     		lm.put(type, al);
-    		String fullClassName = this.currentPkg.replaceAll(";[\\s]{0,2}$", "")+"."+this.currentClass;
-    		literalslist.put(fullClassName, lm);
+    		literalslist.put(pkgClass, lm);
     	}
     	else { // literalslist contains current class key
     		//check if this type exists yet for this class in literalsmap
-			if(literalslist.get(this.currentClass).containsKey(type)) {
+			if(literalslist.get(pkgClass).containsKey(type)) {
 				 // we have this data type for this class in HM, add new value
-				literalslist.get(this.currentClass).get(type).add(value);
+				literalslist.get(pkgClass).get(type).add(value);
 			}
 			else { // Don't have this type in HashMap for this class
 				// create a new array list for this data type & add value to it
 				TreeSet<String> al = new TreeSet<String>();
 				al.add(value);
-				literalslist.get(currentClass).put(type, al);
+				literalslist.get(pkgClass).put(type, al);
 			}
     	}
     }
@@ -276,32 +276,37 @@ public class RandoopScraper {
 				ioe.printStackTrace();
 				ok = false;
 			}
+			boolean trueLiteral = false;
 			final String preamble = "START CLASSLITERALS\n";
-			/*try {
-				ofs.write(preamble.getBytes());
-				ofs.flush();
-			} catch (IOException e1) {
-				System.err.println("Error writing preamble to output file "+e1.getMessage());
-				e1.printStackTrace();
-				ok = false;
-			}*/
+			final String classpost = "END CLASSLITERALS\n";
+			final String classpreamble = "CLASSNAME\n";
+			final String literalslabel = "LITERALS\n";
 			Set<String> class_set = literalslist.keySet();
 			Iterator<String> class_iter = class_set.iterator();
+			StringBuffer cbuf = new StringBuffer();
 			while(ok && class_iter.hasNext()) {
 				String currClass = class_iter.next();
 				LiteralMap lm = literalslist.get(currClass);
-				if(lm != null) {
+				if(lm != null && !lm.isEmpty()) {
 					// Have a set of literals for this currClass
-					String classpreamble = "CLASSNAME\n"+currClass+"\nLITERALS\n";
-					try {
-						ofs.write(preamble.getBytes());
-						ofs.write(classpreamble.getBytes());
-						ofs.flush();
-					} catch (IOException e1) {
-						System.err.println("Error writing classname preamble to output file "+e1.getMessage());
-						e1.printStackTrace();
-						ok = false;
+					cbuf.append(preamble);
+					cbuf.append(classpreamble);
+					if(currClass.matches("^\\..*")) {
+						currClass = currClass.replaceAll("^\\.", "");
 					}
+					cbuf.append(currClass);
+					cbuf.append("\n");
+					cbuf.append(literalslabel);
+					//String classpreamble = "CLASSNAME\n"+currClass+"\nLITERALS\n";
+					//try {
+					//	ofs.write(preamble.getBytes());
+					//	ofs.write(classpreamble.getBytes());
+					//	ofs.flush();
+					//} catch (IOException e1) {
+					//	System.err.println("Error writing classname preamble to output file "+e1.getMessage());
+					//	e1.printStackTrace();
+					//	ok = false;
+					//}
 					Set<String> type_set = lm.keySet();
 					Iterator<String> type_iter = type_set.iterator();
 					while(type_iter.hasNext()) {
@@ -309,44 +314,48 @@ public class RandoopScraper {
 						TreeSet<String> type_values = lm.get(currType);
 						for(String tvalue : type_values) {
 							if(!eliminateDup(currType, tvalue)) {
-								try {
-									ofs.write((currType+":").getBytes());
-								    if(currType.equals("String")) {
-								    	    if(tvalue.contains("\"")) {
-								    	    	    String tmpval = tvalue.replaceAll("\"", "");
-								    	    	    tvalue = tmpval;
-								    	    }
-								        	ofs.write(("\""+tvalue+"\"\n").getBytes());
-								    }
-								    else {
-								    	ofs.write((tvalue+"\n").getBytes());
-								    }
-									ofs.flush();
-								} catch (IOException e1) {
-									System.err.println("Error writing type:value to output file "+e1.getMessage());
-									e1.printStackTrace();
-									ok = false;
+								cbuf.append(currType);
+								cbuf.append(":");
+								if(currType.equals("String")) {
+									if(tvalue.contains("\"")) {
+										String tmpval = tvalue.replaceAll("\"", "");
+										tvalue = tmpval;
+										
+									}
+								    cbuf.append("\"");
+									cbuf.append(tvalue);
+									cbuf.append("\"");
 								}
+								else {
+								    cbuf.append(tvalue);
+								}
+								cbuf.append("\n");
+								trueLiteral = true;
 							}
 						}
 					}
-					final String classpost = "END CLASSLITERALS\n";
+				}
+				if(trueLiteral) {
+					cbuf.append(classpost);
 					try {
-						ofs.write(classpost.getBytes());
+						ofs.write(cbuf.toString().getBytes());
 					} catch (IOException e1) {
-						System.err.println("Error writing classpost to output file "+e1.getMessage());
+						System.err.println("Error writing classliterals block output file "+e1.getMessage());
 						e1.printStackTrace();
 						ok = false;
 					}
+					trueLiteral = false;
 				}
+				cbuf.delete(0, cbuf.length());
 			}
-			if(ofs != null)
+			if(ofs != null) {
 				try {
 					ofs.close();
 				} catch (IOException e) {
 					System.err.println("error closing: "+out.getName()+" "+e.getMessage());
 					e.printStackTrace();
 				}
+			}
 		}
 	}
 	
