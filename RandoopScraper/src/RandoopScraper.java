@@ -155,6 +155,7 @@ public class RandoopScraper {
      * @param value
      */
     public void addLiteral(String type, String value) {
+    	HashMap<String, LiteralMap> literalslist = getLiteralsList();
     	if(literalslist == null) {
     		literalslist = new HashMap<String, LiteralMap>();
     	}
@@ -164,7 +165,8 @@ public class RandoopScraper {
     		al.add(value);
     		LiteralMap lm = new LiteralMap();
     		lm.put(type, al);
-    		literalslist.put(this.currentClass, lm);
+    		String fullClassName = this.currentPkg.replaceAll(";[\\s]{0,2}$", "")+"."+this.currentClass;
+    		literalslist.put(fullClassName, lm);
     	}
     	else { // literalslist contains current class key
     		//check if this type exists yet for this class in literalsmap
@@ -210,7 +212,7 @@ public class RandoopScraper {
 		if(cu != null) {
 			Optional<PackageDeclaration> pd = cu.getPackageDeclaration();
 			if(pd.isPresent()) {
-				this.currentPkg = pd.get().toString();
+				this.currentPkg = pd.get().toString().replaceAll("^package ", "");
 			} else {
 				this.currentPkg = "";
 			}
@@ -256,6 +258,7 @@ public class RandoopScraper {
 	 */
 	private void createLiteralsFile() {
 		boolean ok = true; // write/access failure state
+		HashMap<String, LiteralMap> literalslist = getLiteralsList();
 		if(!literalslist.isEmpty()) {
 			File out = new File("new_literals_list.txt");
 			FileOutputStream ofs = null;
@@ -273,15 +276,15 @@ public class RandoopScraper {
 				ioe.printStackTrace();
 				ok = false;
 			}
-			String preamble = "START CLASSLITERALS\n";
-			try {
+			final String preamble = "START CLASSLITERALS\n";
+			/*try {
 				ofs.write(preamble.getBytes());
 				ofs.flush();
 			} catch (IOException e1) {
 				System.err.println("Error writing preamble to output file "+e1.getMessage());
 				e1.printStackTrace();
 				ok = false;
-			}
+			}*/
 			Set<String> class_set = literalslist.keySet();
 			Iterator<String> class_iter = class_set.iterator();
 			while(ok && class_iter.hasNext()) {
@@ -291,6 +294,7 @@ public class RandoopScraper {
 					// Have a set of literals for this currClass
 					String classpreamble = "CLASSNAME\n"+currClass+"\nLITERALS\n";
 					try {
+						ofs.write(preamble.getBytes());
 						ofs.write(classpreamble.getBytes());
 						ofs.flush();
 					} catch (IOException e1) {
@@ -308,7 +312,11 @@ public class RandoopScraper {
 								try {
 									ofs.write((currType+":").getBytes());
 								    if(currType.equals("String")) {
-								    	ofs.write(("\""+tvalue+"\"\n").getBytes());
+								    	    if(tvalue.contains("\"")) {
+								    	    	    String tmpval = tvalue.replaceAll("\"", "");
+								    	    	    tvalue = tmpval;
+								    	    }
+								        	ofs.write(("\""+tvalue+"\"\n").getBytes());
 								    }
 								    else {
 								    	ofs.write((tvalue+"\n").getBytes());
@@ -322,7 +330,7 @@ public class RandoopScraper {
 							}
 						}
 					}
-					String classpost = "END CLASSLITERALS\n";
+					final String classpost = "END CLASSLITERALS\n";
 					try {
 						ofs.write(classpost.getBytes());
 					} catch (IOException e1) {
