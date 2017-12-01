@@ -212,7 +212,7 @@ public class RandoopScraper {
 		if(cu != null) {
 			Optional<PackageDeclaration> pd = cu.getPackageDeclaration();
 			if(pd.isPresent()) {
-				this.currentPkg = pd.get().toString().replaceAll("^package ", "");
+				this.currentPkg = pd.get().toString().replaceAll("^package ", "").trim();
 			} else {
 				this.currentPkg = "";
 			}
@@ -276,7 +276,7 @@ public class RandoopScraper {
 				ioe.printStackTrace();
 				ok = false;
 			}
-			boolean trueLiteral = false;
+			boolean hasLiterals = false;
 			final String preamble = "START CLASSLITERALS\n";
 			final String classpost = "END CLASSLITERALS\n";
 			final String classpreamble = "CLASSNAME\n";
@@ -330,12 +330,12 @@ public class RandoopScraper {
 								    cbuf.append(tvalue);
 								}
 								cbuf.append("\n");
-								trueLiteral = true;
+								hasLiterals = true;
 							}
 						}
 					}
 				}
-				if(trueLiteral) {
+				if(hasLiterals) {
 					cbuf.append(classpost);
 					try {
 						ofs.write(cbuf.toString().getBytes());
@@ -344,7 +344,7 @@ public class RandoopScraper {
 						e1.printStackTrace();
 						ok = false;
 					}
-					trueLiteral = false;
+					hasLiterals = false;
 				}
 				cbuf.delete(0, cbuf.length());
 			}
