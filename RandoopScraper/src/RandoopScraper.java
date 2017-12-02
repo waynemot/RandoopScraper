@@ -216,6 +216,7 @@ public class RandoopScraper {
 			} else {
 				this.currentPkg = "";
 			}
+			this.currentClass = null;
 		    cu.accept(new MethodVisitor(this), null);
 		    ret = true;
 		}
@@ -496,8 +497,11 @@ public class RandoopScraper {
 		// classes to be used by the outer class
 		@Override
 		public void visit(ClassOrInterfaceDeclaration n, Void arg) {
-			if(!n.isInnerClass())
-			    rs.currentClass = n.getNameAsString();
+			if(!n.isInnerClass()) { // isInnerClass doesn't work reliably
+				if(rs.currentClass == null) { // so only save class name
+			        rs.currentClass = n.getNameAsString(); // upon new class init
+				}  // this allows literals of inner classes to be subsumed
+			}
 			super.visit(n, arg);
 		}
 
