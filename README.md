@@ -32,8 +32,9 @@ Integer and floating point value negation
 <li>
 Integer value mutation by off-by-one
 </li>
-Floating point reciprocal
 <li>
+Floating point reciprocal
+</li>
 </ul>
 Each literal value found is associated with the particular Java class in which it was found,
 and subclasses found within a Java program source file are considered to be part of the outer
